@@ -17,11 +17,13 @@ settings = Settings()
 
 def ensure_admin_user() -> None:
     if not (settings.init_admin_username and settings.init_admin_password):
+        log.info("首启管理员：未设置 INIT_ADMIN_USERNAME / INIT_ADMIN_PASSWORD，跳过")
         return
     db = SessionLocal()
     try:
         n = db.query(User).count()
         if n > 0:
+            log.info("首启管理员：users 表已有 %s 条记录，跳过（仅空库时创建）", n)
             return
         u = User(
             username=settings.init_admin_username.strip(),
