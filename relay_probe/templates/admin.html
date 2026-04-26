@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}管理{% endblock %}
 {% block main %}
+<div class="admin-page">
 <h2>管理员 · 中转 <span class="small">(ID / 名 / Base / 组)</span></h2>
 <div class="table-wrap">
   <table class="data-table">
@@ -35,4 +36,5 @@
   </table>
 </div>
 <p class="meta">增删改中转请仍使用 <code>X-Admin-Token</code> 调 <code>/api/relays</code> 或 OpenAPI 文档。</p>
+</div>
 {% endblock %}

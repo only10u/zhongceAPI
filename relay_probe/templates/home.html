@@ -1,9 +1,94 @@
 {% extends "base.html" %}
 {% block title %}首页{% endblock %}
 {% block main %}
-<section class="hero">
-  <h1 data-i18n="home_h1">中测 · 海外节点中转站 API 检测与排名</h1>
-  <p class="lead" data-i18n="home_lead">对多家中转网关进行可用性、延迟与按模型线号的展示；掺水率需深度对话探测，当前为占位或人工维护。</p>
-  <a class="btn primary" href="/rank" data-i18n="home_cta">进入中转站排行</a>
-</section>
+<div class="home-magic home-bleed">
+  <div class="magic-bg" aria-hidden="true"></div>
+
+  <section class="hero-magic">
+    <p class="eyebrow gradient-eyebrow" data-i18n="home_eyebrow">中转站 API 检测平台</p>
+    <h1 class="h1-magic">
+      <span class="gradient-text" data-i18n="home_brand_title">中测</span>
+    </h1>
+    <p class="tagline" data-i18n="home_tagline">识别中转站接口真伪 · 多模型分榜 · 持续探测</p>
+    <p class="hero-desc i18n-zh">在海外节点对多家 OpenAI 兼容网关做自动化探测，基于 <code>/v1/models</code> 响应与模型名子串匹配，输出<strong>在线率、延迟、运行状态</strong>；<strong>掺水率</strong>需对话级深度质检，本页与排行中无数据时显示为「—」或人工维护字段。功能与信息维度在同类产品中力求<strong>更全、更细、可核证</strong>。</p>
+    <p class="hero-desc i18n-en">Automated checks from overseas nodes on OpenAI-compatible gateways: <code>/v1/models</code> with substring model-ID matching for <strong>online rate, latency, status</strong>. <strong>Dilution</strong> needs deep chat verification—shown as "—" or manual fields until then. We aim to be <strong>more complete and verifiable</strong> than a simple ping.</p>
+    <div class="hero-cta">
+      <a class="btn btn-magic primary" href="/rank" data-i18n="home_cta">进入中转站排行</a>
+      <a class="btn btn-magic" href="/inclusion" data-i18n="home_cta2">申请收录</a>
+      <a class="btn btn-ghost" href="/docs" target="_blank" rel="noopener" data-i18n="home_cta_api">OpenAPI 文档</a>
+    </div>
+  </section>
+
+  <section class="bento" aria-label="能力概览">
+    <article class="magic-card bento-a">
+      <h3 class="bento-title" data-i18n="home_b1_t">多模型分榜</h3>
+      <p class="bento-txt i18n-zh">按 Opus 4.7 / 4.6、Sonnet 4.6、GPT 5.5 / 5.4、Gemini 3.1 Pro 等线号分别统计，避免「混在一起看不清」。</p>
+      <p class="bento-txt i18n-en">Per-model leaderboards: Opus, Sonnet, GPT, Gemini—so you are not looking at a single blended score.</p>
+    </article>
+    <article class="magic-card bento-b">
+      <h3 class="bento-title" data-i18n="home_b2_t">可调时间窗口</h3>
+      <p class="bento-txt i18n-zh">成功率与延迟在配置的小时数内统计（如最近 24 小时），可反映短期波动。</p>
+      <p class="bento-txt i18n-en">Success rate and latency use a rolling window (e.g. 24h) to reflect short-term changes.</p>
+    </article>
+    <article class="magic-card bento-c">
+      <h3 class="bento-title" data-i18n="home_b3_t">开放 JSON / 自架</h3>
+      <p class="bento-txt i18n-zh">提供排名与仪表盘 JSON，便于二次开发；数据落 SQLite，可私有部署、自行保管。</p>
+      <p class="bento-txt i18n-en">JSON APIs for integration; SQLite for self-hosting and data custody.</p>
+    </article>
+  </section>
+
+  <section class="section-block">
+    <h2 class="h2-magic" data-i18n="home_models_h">目标模型 / 去排行</h2>
+    <p class="section-lead i18n-zh">以下模型线在探测时会尝试从网关返回的模型列表中匹配；点击直达对应分榜。</p>
+    <p class="section-lead i18n-en">Probes match these model lines in the catalog response. Jump to each section on the rank page.</p>
+    <div class="chips" role="list">
+      <a class="chip" href="/rank#m-opus-47">Opus 4.7</a>
+      <a class="chip" href="/rank#m-opus-46">Opus 4.6</a>
+      <a class="chip" href="/rank#m-sonnet-46">Sonnet 4.6</a>
+      <a class="chip chip-new" href="/rank#m-gpt-5-5"><span class="chip-badge" data-i18n="chip_badge">新</span>GPT 5.5</a>
+      <a class="chip" href="/rank#m-gpt-5-4">GPT 5.4</a>
+      <a class="chip" href="/rank#m-gemini-3-1">Gemini 3.1 Pro</a>
+    </div>
+  </section>
+
+  <section class="section-block how-grid">
+    <h2 class="h2-magic" data-i18n="home_how_h">我们测什么、不承诺什么</h2>
+    <ul class="how-list i18n-zh">
+      <li><strong>在线率 / 延迟</strong>：来自对 <code>GET /v1/models</code> 的定时请求与模型名子串是否命中，不等同于对话质量。</li>
+      <li><strong>掺水率</strong>：需多轮聊天、能力对照与更重的指纹分析；未接入前为占位。请勿将「—」误读为「已鉴定无掺水」。</li>
+      <li><strong>运行状态</strong>：由最近一次窗口内探测结果归一展示（如在线 / 无数据 / 未列此模型等）。</li>
+      <li><strong>非审计报告</strong>：结果仅供接入前技术参考，不构成对商户信誉或资金安全的保证。</li>
+    </ul>
+    <ul class="how-list i18n-en">
+      <li><strong>Online &amp; latency</strong> from <code>GET /v1/models</code> and ID substring hits—not chat quality.</li>
+      <li><strong>Dilution</strong> needs deep checks; "—" is not a clean bill of health.</li>
+      <li><strong>Status</strong> is derived from the latest windowed probes.</li>
+      <li><strong>Not a formal audit</strong>—use for technical screening only.</li>
+    </ul>
+  </section>
+
+  <section class="section-block faq-magic" aria-label="常见问题">
+    <h2 class="h2-magic" data-i18n="home_faq_h">常见问题</h2>
+    <details class="faq-item i18n-zh" open>
+      <summary>什么是「中转站」检测？</summary>
+      <p>很多第三方提供「统一 OpenAI 兼容地址」转发多家上游。中测在<strong>不保存你的业务对话</strong>的前提下，对公开可探测的接口做健康与模型目录层面的核验，帮助你在长期付费前多一层技术判断。</p>
+    </details>
+    <details class="faq-item i18n-zh">
+      <summary>和仅测连通性有什么区别？</summary>
+      <p>除连通性外，我们关注<strong>模型目录是否声称提供目标线号</strong>，并分模型给出在线率与延迟分布；与「照妖镜」类站点一样，更偏向<strong>可复核的技术指标</strong>展示。</p>
+    </details>
+    <details class="faq-item i18n-zh">
+      <summary>数据多久更新？</summary>
+      <p>由服务端轮询周期决定（如每数分钟对全部启用站点探测一轮）。排行走 JSON 时也会带上统计窗口与版本号。</p>
+    </details>
+    <details class="faq-item i18n-en">
+      <summary>What is being tested?</summary>
+      <p>We probe public OpenAI-compatible <code>/v1/models</code> style endpoints and match tracked model ID substrings—without storing your private prompts.</p>
+    </details>
+    <details class="faq-item i18n-en">
+      <summary>Beyond a simple ping?</summary>
+      <p>We surface per-model presence, online rate, and latency in a window—closer to what ranking sites like 照妖镜 show as verifiable numbers.</p>
+    </details>
+  </section>
+</div>
 {% endblock %}
