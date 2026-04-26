@@ -1,5 +1,6 @@
 .env
-data/
+data/app.db
+data/*.db
 .venv/
 venv/
 __pycache__/

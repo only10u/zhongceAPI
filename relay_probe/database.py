@@ -32,19 +32,29 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 def _ensure_relay_columns() -> None:
     if not str(settings.database_url).startswith("sqlite"):
         return
+    alters = [
+        ("rank_boost", "ALTER TABLE relays ADD COLUMN rank_boost INTEGER NOT NULL DEFAULT 0"),
+        ("group_name", "ALTER TABLE relays ADD COLUMN group_name VARCHAR(64)"),
+        ("site_price", "ALTER TABLE relays ADD COLUMN site_price VARCHAR(64)"),
+        ("dilution_override", "ALTER TABLE relays ADD COLUMN dilution_override FLOAT"),
+    ]
     with engine.begin() as conn:
         r = conn.execute(text("PRAGMA table_info(relays)"))
         names = {row[1] for row in r.all()}
-        if "rank_boost" not in names:
-            conn.execute(
-                text("ALTER TABLE relays ADD COLUMN rank_boost INTEGER NOT NULL DEFAULT 0")
-            )
+        for col, ddl in alters:
+            if col not in names:
+                conn.execute(text(ddl))
+                names.add(col)
 
 
 def init_db() -> None:
     settings.data_path.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     _ensure_relay_columns()
+    from relay_probe.db_bootstrap import ensure_admin_user, import_seed_sites_from_json
+
+    ensure_admin_user()
+    import_seed_sites_from_json()
 
 
 def get_db() -> Generator[Session, None, None]:

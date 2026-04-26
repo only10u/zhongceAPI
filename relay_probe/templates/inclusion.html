@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}中转站收录{% endblock %}
+{% block main %}
+<div class="card">
+  <h2 data-i18n="inc_h2">申请收录</h2>
+  <p class="hint" data-i18n="inc_hint">提交后由管理员审核；请提供可探测的正式 Base 与（如需）测账户。参考 <a href="https://hvoy.ai/contact" target="_blank" rel="noopener">禾维申请页</a> 的字段习惯。</p>
+  <form id="f-inc" class="form two-col">
+    <label>站点名称 <input name="site_name" required placeholder="例：我的中转"></label>
+    <label>站点 URL (Base) <input name="site_url" required placeholder="https://api.xxx.com"></label>
+    <label>联系方式 <input name="contact" placeholder="微信/邮箱/QQ"></label>
+    <label class="span2">备注 <textarea name="remark" rows="3" placeholder="补充说明、分组建议、可用模型等"></textarea></label>
+    <button class="btn primary" type="submit" data-i18n="inc_submit">提交</button>
+  </form>
+  <p id="imsg" class="msg"></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById("f-inc").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const r = await fetch("/api/inclusion", { method: "POST", body: fd });
+    const t = document.getElementById("imsg");
+    if (r.ok) { t.textContent = "已提交，ID " + (await r.json()).id; e.target.reset(); return; }
+    t.textContent = await r.text();
+  });
+</script>
+{% endblock %}

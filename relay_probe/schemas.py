@@ -8,6 +8,8 @@ class RelayCreate(BaseModel):
     check_path: str = Field(default="/v1/models", max_length=512)
     enabled: bool = True
     rank_boost: int = Field(default=0, ge=0, le=2_000_000_000)
+    group_name: str | None = Field(default=None, max_length=64)
+    site_price: str | None = Field(default=None, max_length=64)
 
 
 class RelayUpdate(BaseModel):
@@ -17,6 +19,9 @@ class RelayUpdate(BaseModel):
     check_path: str | None = Field(default=None, min_length=1, max_length=512)
     enabled: bool | None = None
     rank_boost: int | None = Field(default=None, ge=0, le=2_000_000_000)
+    group_name: str | None = None
+    site_price: str | None = None
+    dilution_override: float | None = Field(default=None, ge=0, le=100)
 
 
 class Message(BaseModel):

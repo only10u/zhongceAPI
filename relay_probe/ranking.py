@@ -5,7 +5,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from relay_probe.config import Settings
-from relay_probe.models import ProbeSample, Relay
+from relay_probe.models import ModelProbeSample, ProbeSample, Relay
 
 settings = Settings()
 
@@ -26,11 +26,17 @@ def delete_old_samples(db: Session) -> int:
     before = dt.datetime.now(dt.timezone.utc) - dt.timedelta(
         days=settings.sample_retention_days
     )
-    return (
+    n1 = (
         db.query(ProbeSample)
         .filter(ProbeSample.created_at < before)
         .delete(synchronize_session=False)
     )
+    n2 = (
+        db.query(ModelProbeSample)
+        .filter(ModelProbeSample.created_at < before)
+        .delete(synchronize_session=False)
+    )
+    return n1 + n2
 
 
 def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dict[str, Any]]:

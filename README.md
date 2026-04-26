@@ -14,9 +14,13 @@ cp .env.example .env
 python -m uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765
 ```
 
-- **看板**: 浏览器打开 `http://127.0.0.1:8765/`
-- **排名 JSON**: `GET /api/ranking?window_hours=24`
-- **API 文档**: `http://127.0.0.1:8765/docs`
+- **Web**: 首页 `/`，多模型排行 `/rank`（[禾维 Hvoy](https://hvoy.ai) / [TokensQC](https://tokensqc.com) 风格分栏，在线率/掺水/延迟/状态），受理收录 `/inclusion`（表单项参考 [Hvoy 联系页](https://hvoy.ai/contact) 习惯），`JWT_SECRET`+`INIT_ADMIN_*` 配置后使用 `/login` 与后台 `/admin`；静态资源在 `/static`。
+- **JSON**: 总榜 `GET /api/ranking`；多模型分榜 `GET /api/dashboard?window_hours=24`
+- **OpenAPI**: `http://127.0.0.1:8765/docs`
+
+**说明：** 「掺水率」在深度对话探针未接入前为 **—** 或库表字段 `dilution_override`；**在线率/延迟** 来自对 `GET /v1/models` 的响应中是否**子串匹配**各模型线号（见 `relay_probe/model_catalog.py`），与商业质检站全量能力可能不同。
+
+**批量增加站点（含参考 [Hvoy](https://hvoy.ai) 首页表）：** 将 JSON 数组写入 `data/seed_sites.json`（格式见 `data/seed_sites.example.json`），重启后执行一次 `POST /api/admin/reseed` 并带 `X-Admin-Token`，或仅重启（若 `seed_sites.json` 非空，启动时会尝试导入未存在的 Base）。
 
 ### 环境变量（`.env`）——「第五步」怎么填
 
@@ -32,8 +36,11 @@ python -m uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765
 | `CHECK_INTERVAL_SEC` | `0` 不自动轮询；`>0` 为每轮全量探测后休眠秒数 |
 | `SAMPLE_RETENTION_DAYS` | 更早的样本会删，控库体积 |
 | `HOST` / `PORT` | 监听地址与端口（与 systemd 里要一致） |
+| `JWT_SECRET` | 必须设置，用于 Cookie 登录签名校验。 |
+| `INIT_ADMIN_USERNAME` / `INIT_ADMIN_PASSWORD` | 仅当**尚无用户**时创建首个**管理员**账号（之后用 `/login` 进 `/admin`）。 |
+| `ALLOW_REGISTER` | 默认 `true`：未登录用户可 `/login` 自助注册**普通**账号（`admin` 名保留给管理员注册拒绝）。 |
 
-在数据库里，单条中转还可设可选字段 **`rank_boost`**（越大越靠前，API 的 `POST/PATCH` 可带），与 `RANKING_PIN_FIRST_BASES` 可叠加；仍**不会**把成功率改为假的 100%。
+在数据库里，单条中转还可设可选字段 **`rank_boost` / `group_name` / `site_price` / `dilution_override`** 等，与 `RANKING_PIN_FIRST_BASES` 可组合使用。
 
 ### 管理中转（写操作）
 

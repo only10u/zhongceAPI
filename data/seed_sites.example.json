@@ -1,0 +1,11 @@
+[
+  {
+    "name": "从 Hvoy 表格复制站名如「示例」",
+    "base_url": "https://你的中转根域名",
+    "api_key": null,
+    "check_path": "/v1/models",
+    "group": "参考站分组名",
+    "price": "参考价格字段",
+    "enabled": true
+  }
+]

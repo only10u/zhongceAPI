@@ -12,6 +12,7 @@ from relay_probe import __version__
 from relay_probe.config import Settings
 from relay_probe.database import SessionLocal, get_db, init_db
 from relay_probe.models import ProbeSample, Relay
+from relay_probe.probesample_helper import add_model_samples_from_probe
 from relay_probe.probe import ProbeResult, result_to_dict, run_probe
 from relay_probe.ranking import build_ranking_rows, delete_old_samples
 from relay_probe.schemas import Message, RelayCreate, RelayUpdate
@@ -23,77 +24,6 @@ logging.basicConfig(
 log = logging.getLogger("relay_probe")
 settings = Settings()
 _WARNED_INSECURE = False
-
-_PAGE_HTML = """<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="description" content="中测 — 中转站 API 检测平台，海外节点多路探测与排名。"/>
-  <title>中测 — 中转站 API 检测平台</title>
-  <style>
-    :root { --bg: #0f1419; --fg: #e7e9ea; --muted: #8b98a5; --border: #38444d; --accent: #1d9bf0; }
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--fg); margin: 0; padding: 1.25rem; line-height: 1.45; }
-    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem; }
-    p.meta { color: var(--muted); font-size: 0.85rem; margin: 0 0 1rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; }
-    tr:hover td { background: rgba(29, 155, 240, 0.06); }
-    .ok { color: #00ba7c; }
-    .bad { color: #f4212e; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <h1>中测</h1>
-  <p class="meta" style="margin-top:0">中转站 API 检测平台</p>
-  <p class="meta" id="meta">加载中…</p>
-  <div style="overflow-x: auto">
-    <table>
-      <thead>
-        <tr>
-          <th>排名</th>
-          <th>名称</th>
-          <th>窗口成功率</th>
-          <th>平均延迟 (ms)</th>
-          <th>最近</th>
-          <th>Base</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </div>
-  <p class="meta"><a href="/api/ranking">JSON</a> · <a href="/docs">API 文档</a></p>
-  <script>
-    async function load() {
-      const r = await fetch("/api/ranking?window_hours=" + encodeURIComponent("__WINDOW_HOURS__"), { cache: "no-store" });
-      const d = await r.json();
-      document.getElementById("meta").textContent = "统计窗口: " + d.window_hours + " 小时 · 共 " + d.rows.length + " 条";
-      const tb = document.getElementById("rows");
-      tb.innerHTML = "";
-      for (const x of d.rows) {
-        const tr = document.createElement("tr");
-        const last = x.last_check_at
-          ? (x.last_ok ? "<span class=ok>成功</span>" : "<span class=bad>失败</span>") + " " + (x.last_latency_ms != null ? x.last_latency_ms + " ms" : "")
-          : "—";
-        tr.innerHTML = "<td>" + x.rank + "</td><td>" + escapeHtml(x.name) + "</td><td>" +
-          (x.samples_in_window ? (x.success_rate * 100).toFixed(1) + "%" : "—") + "</td><td>" +
-          (x.avg_latency_ms != null ? x.avg_latency_ms : "—") + "</td><td>" + last + "</td><td><small>" + escapeHtml(x.base_url) + "</small></td>";
-        tb.appendChild(tr);
-      }
-    }
-    function escapeHtml(s) {
-      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    }
-    load();
-    setInterval(load, 30000);
-  </script>
-</body>
-</html>"""
 
 
 def _admin_warned() -> None:
@@ -164,6 +94,7 @@ def _probe_all_sync() -> None:
                     error=res.error,
                 )
             )
+            add_model_samples_from_probe(db, r.id, res)
             if res.ok:
                 log.info("probe ok id=%s name=%s latency_ms=%s", r.id, r.name, res.latency_ms)
             else:
@@ -186,7 +117,7 @@ def _probe_one_sync(relay_id: int) -> tuple[ProbeResult, str | None]:
         if r is None:
             return (
                 ProbeResult(
-                    False, None, None, "relay 不存在", None
+                    False, None, None, "relay 不存在", None, None
                 ),
                 None,
             )
@@ -201,6 +132,7 @@ def _probe_one_sync(relay_id: int) -> tuple[ProbeResult, str | None]:
             error=res.error,
         )
         db.add(sample)
+        add_model_samples_from_probe(db, r.id, res)
         delete_old_samples(db)
         db.commit()
         t = (
@@ -213,7 +145,7 @@ def _probe_one_sync(relay_id: int) -> tuple[ProbeResult, str | None]:
         db.rollback()
         log.exception("probe one failed relay_id=%s", relay_id)
         return (
-            ProbeResult(False, None, None, "数据库写入失败", None),
+            ProbeResult(False, None, None, "数据库写入失败", None, None),
             None,
         )
     finally:
@@ -237,12 +169,6 @@ def health() -> dict[str, str]:
 def health_head() -> Response:
     """供 curl -I / 监控 HEAD 探测，避免 405。"""
     return Response(status_code=200)
-
-
-@app.get("/")
-def index() -> HTMLResponse:
-    wh = str(settings.ranking_window_hours)
-    return HTMLResponse(content=_PAGE_HTML.replace("__WINDOW_HOURS__", wh))
 
 
 @app.get("/api/ranking")
@@ -288,6 +214,8 @@ def create_relay(
         check_path=body.check_path.strip() or "/v1/models",
         enabled=body.enabled,
         rank_boost=body.rank_boost,
+        group_name=body.group_name.strip() if body.group_name else None,
+        site_price=body.site_price.strip() if body.site_price else None,
     )
     db.add(r)
     db.commit()
@@ -320,6 +248,12 @@ def update_relay(
         r.enabled = body.enabled
     if body.rank_boost is not None:
         r.rank_boost = body.rank_boost
+    if body.group_name is not None:
+        r.group_name = body.group_name.strip() or None
+    if body.site_price is not None:
+        r.site_price = body.site_price.strip() or None
+    if body.dilution_override is not None:
+        r.dilution_override = body.dilution_override
     db.commit()
     db.refresh(r)
     d = r.to_public_dict()
@@ -368,3 +302,8 @@ def main() -> None:
         port=settings.port,
         log_level="info",
     )
+
+
+from relay_probe.pages import register_pages
+
+register_pages(app)

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}管理{% endblock %}
+{% block main %}
+<h2>管理员 · 中转 <span class="small">(ID / 名 / Base / 组)</span></h2>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>ID</th><th>名称</th><th>Base</th><th>组</th><th>价</th></tr></thead>
+    <tbody>
+    {% for r in relay_rows %}
+      <tr><td>{{ r.id }}</td><td>{{ r.name }}</td><td class="url">{{ r.base_url }}</td><td>{{ r.group_name or "—" }}</td><td>{{ r.site_price or "—" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<h2>用户</h2>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>ID</th><th>用户</th><th>管理</th></tr></thead>
+    <tbody>
+    {% for u in user_rows %}
+      <tr><td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.is_admin }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<h2>收录申请</h2>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>ID</th><th>名</th><th>URL</th><th>状态</th><th>时间</th></tr></thead>
+    <tbody>
+    {% for q in inc_rows %}
+      <tr><td>{{ q.id }}</td><td>{{ q.site_name }}</td><td class="url">{{ q.site_url }}</td><td>{{ q.status }}</td><td>{{ q.created_at }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="meta">增删改中转请仍使用 <code>X-Admin-Token</code> 调 <code>/api/relays</code> 或 OpenAPI 文档。</p>
+{% endblock %}

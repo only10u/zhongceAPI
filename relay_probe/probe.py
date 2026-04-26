@@ -14,6 +14,8 @@ class ProbeResult:
     http_status: int | None
     error: str | None
     body_preview: str | None
+    # 供 /v1/models 子串匹配，过大时截断
+    body_text: str | None = None
 
 
 def run_probe(
@@ -51,16 +53,23 @@ def run_probe(
         )
 
     elapsed = round((time.perf_counter() - t0) * 1000, 2)
-    text = (r.text or "")[:2000]
+    full = r.text or ""
+    preview = (full)[:2000]
+    text_cap = 400_000
+    body_blob = full[:text_cap] if full else None
     ok = 200 <= r.status_code < 300
     return ProbeResult(
         ok=ok,
         latency_ms=elapsed,
         http_status=r.status_code,
         error=None if ok else f"HTTP {r.status_code}",
-        body_preview=text or None,
+        body_preview=preview or None,
+        body_text=body_blob if ok else None,
     )
 
 
-def result_to_dict(r: ProbeResult) -> dict[str, Any]:
-    return asdict(r)
+def result_to_dict(r: ProbeResult, include_body: bool = False) -> dict[str, Any]:
+    d = asdict(r)
+    if not include_body:
+        d.pop("body_text", None)
+    return d

@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     port: int = Field(default=8765, ge=1, le=65535)
     # 写接口（增删改中转）需携带 X-Admin-Token；空字符串表示不校验（仅适合内网/测试）
     admin_token: str = Field(default="")
+    # JWT 鉴权（网页登录、用户工作台）；生产请设长随机串
+    jwt_secret: str = Field(default="insecure-please-set-jwt-secret-in-env")
+    jwt_expire_hours: int = Field(default=72, ge=1, le=720)
+    # 首启时自动创建管理员（仅当尚无任何用户）
+    init_admin_username: str = Field(default="")
+    init_admin_password: str = Field(default="")
+    # 是否开放自助注册
+    allow_register: bool = Field(default=True)
 
     @property
     def data_path(self) -> Path:

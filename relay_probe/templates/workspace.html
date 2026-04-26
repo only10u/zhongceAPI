@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}工作台{% endblock %}
+{% block main %}
+<div class="card">
+  <h2>欢迎，{{ wuser.username }}</h2>
+  <p>个人工作台将用于收藏关注的中转、自定义视图等（后续可扩展）。当前请使用 <a href="/rank">中转站排行</a> 查看全站数据。</p>
+</div>
+{% endblock %}

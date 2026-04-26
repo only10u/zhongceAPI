@@ -26,12 +26,20 @@ class Relay(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     # 仅影响排序权值（越大越靠前），与 RANKING_PIN_FIRST_BASES 可叠加
     rank_boost: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # 展示用（可选）
+    group_name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    site_price: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # 人工备注掺水率 0-100 或空（深度探测可后续接）
+    dilution_override: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, nullable=False
     )
 
     samples: Mapped[list["ProbeSample"]] = relationship(
         "ProbeSample", back_populates="relay", lazy="selectin"
+    )
+    model_samples: Mapped[list["ModelProbeSample"]] = relationship(
+        "ModelProbeSample", back_populates="relay"
     )
 
     def to_public_dict(self) -> dict[str, Any]:
@@ -42,6 +50,8 @@ class Relay(Base):
             "check_path": self.check_path,
             "enabled": self.enabled,
             "rank_boost": self.rank_boost,
+            "group_name": self.group_name,
+            "site_price": self.site_price,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -62,3 +72,49 @@ class ProbeSample(Base):
     )
 
     relay: Mapped[Relay] = relationship("Relay", back_populates="samples")
+
+
+class ModelProbeSample(Base):
+    """一次探测里，在 /v1/models 正文中子串是否命中各模型线号（低成本可用性，非对话质检）。"""
+
+    __tablename__ = "model_probe_samples"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    relay_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("relays.id", ondelete="CASCADE"), index=True
+    )
+    model_slug: Mapped[str] = mapped_column(String(64), index=True)
+    present: Mapped[bool] = mapped_column(Boolean, default=False)
+    latency_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now, nullable=False, index=True
+    )
+    relay: Mapped[Relay] = relationship("Relay", back_populates="model_samples")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now, nullable=False
+    )
+
+
+class InclusionRequest(Base):
+    __tablename__ = "inclusion_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    site_name: Mapped[str] = mapped_column(String(256))
+    site_url: Mapped[str] = mapped_column(String(1024))
+    contact: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    remark: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(32), default="pending"
+    )  # pending, approved, rejected
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now, nullable=False, index=True
+    )
