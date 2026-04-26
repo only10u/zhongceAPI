@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -25,12 +26,39 @@ from relay_probe.models import (
     Relay,
     User,
 )
-from relay_probe.dashboard_stats import build_full_dashboard
-from relay_probe.model_catalog import TRACKED_MODELS
+from relay_probe.dashboard_stats import build_full_dashboard, build_home_stats
+from relay_probe.model_catalog import TRACKED_MODELS, match_models
+from relay_probe.probe import result_to_dict, run_probe
 from relay_probe.ranking import build_ranking_rows
+from starlette.concurrency import run_in_threadpool
 
 log = logging.getLogger("relay_probe.pages")
 settings = Settings()
+
+# 公网试探测频控：按 IP 滑动窗口
+_probe_hits: dict[str, list[float]] = {}
+
+
+def _client_ip(request: Request) -> str:
+    xff = (request.headers.get("x-forwarded-for") or "").split(",")
+    if xff and xff[0].strip():
+        return xff[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
+def _check_probe_rl(ip: str, max_per_hour: int = 40) -> None:
+    import time
+
+    now = time.time()
+    win = 3600.0
+    lst = _probe_hits.setdefault(ip, [])
+    lst[:] = [t for t in lst if now - t < win]
+    if len(lst) >= max_per_hour:
+        raise HTTPException(429, detail="试探测过于频繁，请 1 小时后再试或直接使用排行数据")
+    lst.append(now)
+
 
 BASE = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE / "templates"))
@@ -88,9 +116,9 @@ def page_rank(
     )
 
 
-@router.get("/inclusion", response_class=HTMLResponse)
-def page_inclusion(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("inclusion.html", _ctx(request))
+@router.get("/inclusion")
+def page_inclusion_redirect() -> RedirectResponse:
+    return RedirectResponse(url="/rank#inclusion", status_code=302)
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -142,7 +170,53 @@ def api_dashboard(
     h = window_hours or settings.ranking_window_hours
     d = build_full_dashboard(db, window_hours=h)
     d["version"] = __version__
+    d["updated_at"] = datetime.now(timezone.utc).isoformat()
+    d["legacy"] = build_ranking_rows(db, window_hours=h)
     return JSONResponse(content=d)
+
+
+@router.get("/api/home-stats")
+def api_home_stats(
+    window_hours: int | None = None,
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    h = window_hours or settings.ranking_window_hours
+    out = build_home_stats(db, window_hours=h)
+    out["version"] = __version__
+    return JSONResponse(content=out)
+
+
+@router.post("/api/try-probe")
+async def api_try_probe(
+    request: Request,
+    base_url: str = Form(...),
+    api_key: str = Form(""),
+    check_path: str = Form("/v1/models"),
+) -> JSONResponse:
+    _check_probe_rl(_client_ip(request))
+    bu = (base_url or "").strip()
+    if not bu.startswith(("http://", "https://")):
+        raise HTTPException(
+            400, detail="请填写以 http:// 或 https:// 开头的 API 根地址"
+        )
+    if len(bu) > 2048:
+        raise HTTPException(400, detail="地址过长")
+    path = (check_path or "/v1/models").strip() or "/v1/models"
+    if len(path) > 512 or not path.startswith("/"):
+        raise HTTPException(400, detail="检测路径需为以 / 开头的相对路径")
+    key = api_key.strip() or None
+    if key and len(key) > 4096:
+        raise HTTPException(400, detail="Key 过长")
+    res = await run_in_threadpool(
+        run_probe, bu, path, float(settings.http_timeout_sec), key
+    )
+    matches: dict[str, bool] = {}
+    if res.body_text:
+        matches = match_models(res.body_text.lower())
+    out = result_to_dict(res, include_body=False)
+    out["model_matches"] = matches
+    out["check_path_used"] = path
+    return JSONResponse(content=out)
 
 
 @router.post("/api/inclusion")
@@ -243,6 +317,26 @@ def api_me(request: Request) -> JSONResponse:
     if not u:
         return JSONResponse({"user": None})
     return JSONResponse({"user": u})
+
+
+@router.post("/api/auth/change-password")
+def api_change_password(
+    request: Request,
+    old_password: str = Form(...),
+    new_password: str = Form(...),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    cur = _user_from_cookie(request)
+    if not cur:
+        raise HTTPException(401, detail="未登录")
+    if len(new_password) < 8:
+        raise HTTPException(400, detail="新密码至少 8 位")
+    u = db.query(User).filter(User.id == int(cur["id"])).one_or_none()
+    if u is None or not verify_password(old_password, u.password_hash):
+        raise HTTPException(400, detail="原密码错误")
+    u.password_hash = hash_password(new_password)
+    db.commit()
+    return JSONResponse({"ok": True})
 
 
 @router.post("/api/admin/reseed")

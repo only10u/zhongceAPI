@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from relay_probe.config import Settings
 from relay_probe.model_catalog import TRACKED_MODELS
-from relay_probe.models import ModelProbeSample, Relay
+from relay_probe.models import ModelProbeSample, ProbeSample, Relay
+from relay_probe.ranking import build_ranking_rows
 
 settings = Settings()
 
@@ -109,6 +110,7 @@ def build_per_model_table(
                 "group": r.group_name or "—",
                 "price": r.site_price or "—",
                 "online_rate": st["online_rate"],
+                "samples": st["samples"],
                 "online_rate_pct": round(st["online_rate"] * 100, 1) if st["samples"] else "—",
                 "dilution": dilution,
                 "avg_latency_ms": st["avg_latency_ms"],
@@ -147,4 +149,33 @@ def build_full_dashboard(
             for m in TRACKED_MODELS
         ],
         "by_model": by_model,
+    }
+
+
+def build_home_stats(
+    db: Session, window_hours: int | None = None
+) -> dict[str, Any]:
+    """首页实时看板：与全站同一统计窗口的聚合与分模型快照。"""
+    h = window_hours if window_hours is not None else settings.ranking_window_hours
+    since = window_start_utc(h)
+    n_samp = (
+        db.query(func.count(ProbeSample.id))
+        .filter(ProbeSample.created_at >= since)
+        .scalar()
+    ) or 0
+    n_relays = int(db.query(func.count(Relay.id)).scalar() or 0)
+    n_en = int(
+        db.query(func.count(Relay.id)).filter(Relay.enabled.is_(True)).scalar() or 0
+    )
+    dash = build_full_dashboard(db, h)
+    leg = build_ranking_rows(db, h)
+    return {
+        "window_hours": h,
+        "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "relays_total": n_relays,
+        "relays_enabled": n_en,
+        "probe_samples_in_window": int(n_samp),
+        "models_meta": dash["models_meta"],
+        "by_model": dash["by_model"],
+        "legacy_top": leg[:12],
     }

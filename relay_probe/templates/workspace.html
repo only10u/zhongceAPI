@@ -1,8 +1,71 @@
 {% extends "base.html" %}
 {% block title %}工作台{% endblock %}
 {% block main %}
-<div class="card magic-card">
-  <h2>欢迎，{{ wuser.username }}</h2>
-  <p>个人工作台将用于收藏关注的中转、自定义视图等（后续可扩展）。当前请使用 <a href="/rank">中转站排行</a> 查看全站数据。</p>
+<div class="workspace-page">
+  <div class="card magic-card">
+    <h2 data-i18n="ws_h2">个人工作台</h2>
+    <p class="i18n-zh" data-i18n="ws_p1">以下为与全站相同数据源的实时摘要（每 10 秒更新）。可前往排行或首页使用在线检测。</p>
+    <p class="i18n-en" data-i18n="ws_p1">Snapshot below (10s). Open rank or home for full tools.</p>
+    <div class="ws-actions">
+      <a class="btn primary" href="/rank">排名</a>
+      <a class="btn" href="/#home-detector">在线检测</a>
+      <a class="btn" href="/rank#inclusion" data-i18n="home_cta2">申请收录</a>
+    </div>
+  </div>
+  <div class="card magic-card mt">
+    <h3 class="h2-magic" data-i18n="home_broadcast_h2">全站监测摘要</h3>
+    <p class="small muted" id="ws-updated">—</p>
+    <div class="table-wrap table-magic">
+      <table class="data-table data-table-lens">
+        <thead>
+          <tr>
+            <th data-i18n="col_rank">排名</th>
+            <th data-i18n="col_site2">名称</th>
+            <th data-i18n="col_window_ok">窗口成功率</th>
+            <th data-i18n="col_lat">延迟</th>
+          </tr>
+        </thead>
+        <tbody id="ws-live-tbody">
+          <tr><td colspan="4" class="muted">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const tb = document.getElementById("ws-live-tbody");
+  const tu = document.getElementById("ws-updated");
+  function poll() {
+    fetch("/api/home-stats")
+      .then((r) => r.json())
+      .then((d) => {
+        if (tu) tu.textContent = d.updated_at || "—";
+        if (!tb) return;
+        const leg = d.legacy_top || [];
+        tb.textContent = "";
+        (leg || []).slice(0, 12).forEach((x) => {
+          const tr = document.createElement("tr");
+          tr.className = "row-flash";
+          const rate = x.samples_in_window && x.success_rate != null
+            ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%" : "—";
+          const lat = x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
+          tr.innerHTML = "<td class=\"td-rank\"><span class=\"rank-pill\">#" + x.rank + "</span></td><td class=\"td-name\"></td><td class=\"td-metric\">" + rate + "</td><td class=\"td-metric\">" + lat + "</td>";
+          tr.querySelector(".td-name").textContent = x.name;
+          tb.appendChild(tr);
+        });
+        if (leg.length === 0) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = '<td colspan="4" class="muted">—</td>';
+          tb.appendChild(tr);
+        }
+      })
+      .catch(function () {});
+  }
+  poll();
+  setInterval(poll, 10000);
+})();
+</script>
 {% endblock %}

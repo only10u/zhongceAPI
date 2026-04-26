@@ -2,39 +2,74 @@
 {% block title %}管理{% endblock %}
 {% block main %}
 <div class="admin-page">
-<h2>管理员 · 中转 <span class="small">(ID / 名 / Base / 组)</span></h2>
-<div class="table-wrap">
-  <table class="data-table">
-    <thead><tr><th>ID</th><th>名称</th><th>Base</th><th>组</th><th>价</th></tr></thead>
+  <section class="card magic-card admin-boot">
+    <h2 data-i18n="ad_boot">首启创建管理员</h2>
+    <p class="i18n-zh">若数据库中<strong>尚无任何用户</strong>，可在服务器 <code>.env</code> 中设置 <code>INIT_ADMIN_USERNAME</code> 与 <code>INIT_ADMIN_PASSWORD</code> 后重启服务，即会自动创建第一个<strong>管理员</strong>账号。若已有用户，此两项不再生效，请用下方改密或登录后使用。</p>
+    <p class="i18n-en">If <strong>no users exist</strong>, set <code>INIT_ADMIN_USERNAME</code> and <code>INIT_ADMIN_PASSWORD</code> in <code>.env</code> and restart. Not applied when users already exist.</p>
+    <pre class="pre-env">INIT_ADMIN_USERNAME=你的管理员名
+INIT_ADMIN_PASSWORD=强密码至少8位
+JWT_SECRET=openssl rand -hex 32
+ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
+  </section>
+
+  <section class="card magic-card">
+    <h2 data-i18n="ad_pw_h">修改当前登录账号密码</h2>
+    <p class="small muted i18n-zh">适用于管理员与普通用户；新密码至少 8 位。</p>
+    <p class="small muted i18n-en">Min 8 chars for new password.</p>
+    <form id="f-chpw" class="form" style="max-width: 22rem;">
+      <label><span data-i18n="f_old">原密码</span> <input name="old_password" type="password" required autocomplete="current-password" /></label>
+      <label><span data-i18n="f_new">新密码</span> <input name="new_password" type="password" required minlength="8" autocomplete="new-password" /></label>
+      <button class="btn primary" type="submit" data-i18n="f_save">保存新密码</button>
+    </form>
+    <p id="chpw-msg" class="msg"></p>
+  </section>
+
+  <h2>管理员 · 中转 <span class="small">(ID / 名 / Base / 组)</span></h2>
+  <div class="table-wrap table-magic">
+    <table class="data-table data-table-lens">
+      <thead><tr><th>ID</th><th>名称</th><th>Base</th><th>组</th><th>价</th></tr></thead>
     <tbody>
     {% for r in relay_rows %}
       <tr><td>{{ r.id }}</td><td>{{ r.name }}</td><td class="url">{{ r.base_url }}</td><td>{{ r.group_name or "—" }}</td><td>{{ r.site_price or "—" }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
-</div>
-<h2>用户</h2>
-<div class="table-wrap">
-  <table class="data-table">
-    <thead><tr><th>ID</th><th>用户</th><th>管理</th></tr></thead>
+  </div>
+  <h2>用户</h2>
+  <div class="table-wrap table-magic">
+    <table class="data-table data-table-lens">
+      <thead><tr><th>ID</th><th>用户</th><th>管理</th></tr></thead>
     <tbody>
     {% for u in user_rows %}
       <tr><td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.is_admin }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
-</div>
-<h2>收录申请</h2>
-<div class="table-wrap">
-  <table class="data-table">
-    <thead><tr><th>ID</th><th>名</th><th>URL</th><th>状态</th><th>时间</th></tr></thead>
+  </div>
+  <h2>收录申请</h2>
+  <div class="table-wrap table-magic">
+    <table class="data-table data-table-lens">
+      <thead><tr><th>ID</th><th>名</th><th>URL</th><th>状态</th><th>时间</th></tr></thead>
     <tbody>
     {% for q in inc_rows %}
       <tr><td>{{ q.id }}</td><td>{{ q.site_name }}</td><td class="url">{{ q.site_url }}</td><td>{{ q.status }}</td><td>{{ q.created_at }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
+  </div>
+  <p class="meta">增删改中转请仍使用 <code>X-Admin-Token</code> 调 <code>/api/relays</code> 或 <a href="/docs">OpenAPI</a>。</p>
 </div>
-<p class="meta">增删改中转请仍使用 <code>X-Admin-Token</code> 调 <code>/api/relays</code> 或 OpenAPI 文档。</p>
-</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById("f-chpw").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const m = document.getElementById("chpw-msg");
+    const r = await fetch("/api/auth/change-password", { method: "POST", body: fd, credentials: "same-origin" });
+    if (r.ok) { m.textContent = "OK"; m.className = ""; e.target.reset(); return; }
+    try { m.textContent = (await r.json()).detail || r.status; } catch { m.textContent = await r.text(); }
+    m.className = "msg";
+  });
+</script>
 {% endblock %}

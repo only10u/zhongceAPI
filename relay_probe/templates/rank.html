@@ -1,11 +1,23 @@
 {% extends "base.html" %}
 {% block title %}中转站排行{% endblock %}
 {% block main %}
-<div class="rank-page">
+<div
+  class="rank-page"
+  id="rank-page-root"
+  data-window-hours="{{ window_hours }}"
+  data-poll-sec="8"
+>
+  <div class="rank-live-ribbon" id="rank-refresh-hint" aria-live="polite">
+    <span class="live-dot"></span>
+    <span class="i18n-zh" data-i18n="rank_live_ribbon">排行数据与服务器同步中</span>
+    <span class="i18n-en" data-i18n="rank_live_ribbon_en">Syncing</span>
+    <time id="rank-stat-updated" class="stat-time">—</time>
+  </div>
+
   <div class="rank-hero card-spotlight">
     <h1 class="h1-magic h1-rank gradient-text" data-i18n="rank_h1">中转站排行</h1>
-    <p class="rank-sub i18n-zh">多模型分榜、指标可排序对照。统计窗口 <strong>{{ window_hours }}</strong> 小时 · 中测 v{{ version }} · 照妖镜式「一眼看尽」榜单布局。</p>
-    <p class="rank-sub i18n-en">Per-model leaderboards. Window: <strong>{{ window_hours }}</strong>h · v{{ version }} · high-signal table layout for quick comparison.</p>
+    <p class="rank-sub i18n-zh">多模型分榜、指标可对照。统计窗口 <strong>{{ window_hours }}</strong> 小时 · 中测 v{{ version }}。下方数据每 <strong>8</strong> 秒自动与全站库对齐刷新。</p>
+    <p class="rank-sub i18n-en">Per-model leaderboards. Window: <strong>{{ window_hours }}</strong>h · v{{ version }} · table auto-refreshes every <strong>8</strong>s.</p>
   </div>
 
   <div class="rank-toolbar">
@@ -38,7 +50,7 @@
             <th>Base</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="tb-model-{{ slug }}">
         {% for row in rows %}
           <tr>
             <td class="td-rank"><span class="rank-pill">#{{ row.rank }}</span></td>
@@ -74,7 +86,7 @@
           <th>Base</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="tb-legacy">
       {% for x in legacy_rows %}
         <tr>
           <td class="td-rank"><span class="rank-pill">#{{ x.rank }}</span></td>
@@ -87,5 +99,24 @@
       </tbody>
     </table>
   </div>
+
+  <section class="inclusion-rank" id="inclusion">
+    <h2 class="h2-magic" data-i18n="inc_h2">中转站收录</h2>
+    <p class="note i18n-zh" data-i18n="inc_hint2">在此提交申请，与 <a href="https://hvoy.ai/contact" target="_blank" rel="noopener">禾维申请页</a> 的字段习惯相近；需可探测的 Base 与（如需）由管理员在后台配置测账户。</p>
+    <p class="note i18n-en" data-i18n="inc_hint2_en">Public listing request; fields similar to <a href="https://hvoy.ai/contact" target="_blank" rel="noopener">Hvoy</a>. Admin will review.</p>
+    <div class="card magic-card inc-card">
+      <form id="f-inc" class="form two-col" autocomplete="off">
+        <label><span data-i18n="inc_name">站点名称</span> <input name="site_name" required placeholder="例：我的中转"/></label>
+        <label><span data-i18n="inc_url">站点 URL (Base)</span> <input name="site_url" type="url" required placeholder="https://api.xxx.com"/></label>
+        <label><span data-i18n="inc_contact">联系方式</span> <input name="contact" placeholder="微信/邮箱/QQ"/></label>
+        <label class="span2"><span data-i18n="inc_remark">备注</span> <textarea name="remark" rows="3" placeholder="可选：分组、模型说明等"></textarea></label>
+        <button class="btn primary span2" type="submit" data-i18n="inc_submit">提交申请</button>
+      </form>
+      <p id="imsg" class="msg"></p>
+    </div>
+  </section>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/live.js" defer></script>
 {% endblock %}

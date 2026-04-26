@@ -1,23 +1,88 @@
 {% extends "base.html" %}
 {% block title %}首页{% endblock %}
 {% block main %}
-<div class="home-magic home-bleed">
+<div class="home-magic home-bleed" id="home-page-root">
+  <div class="float-orbs" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+  </div>
   <div class="magic-bg" aria-hidden="true"></div>
 
   <section class="hero-magic">
     <p class="eyebrow gradient-eyebrow" data-i18n="home_eyebrow">中转站 API 检测平台</p>
-    <h1 class="h1-magic">
+    <h1 class="h1-magic h1-anim">
       <span class="gradient-text" data-i18n="home_brand_title">中测</span>
     </h1>
     <p class="tagline" data-i18n="home_tagline">识别中转站接口真伪 · 多模型分榜 · 持续探测</p>
-    <p class="hero-desc i18n-zh">在海外节点对多家 OpenAI 兼容网关做自动化探测，基于 <code>/v1/models</code> 响应与模型名子串匹配，输出<strong>在线率、延迟、运行状态</strong>；<strong>掺水率</strong>需对话级深度质检，本页与排行中无数据时显示为「—」或人工维护字段。功能与信息维度在同类产品中力求<strong>更全、更细、可核证</strong>。</p>
-    <p class="hero-desc i18n-en">Automated checks from overseas nodes on OpenAI-compatible gateways: <code>/v1/models</code> with substring model-ID matching for <strong>online rate, latency, status</strong>. <strong>Dilution</strong> needs deep chat verification—shown as "—" or manual fields until then. We aim to be <strong>more complete and verifiable</strong> than a simple ping.</p>
+    <p class="hero-desc i18n-zh">在海外节点对多家 OpenAI 兼容网关做自动化探测，基于 <code>/v1/models</code> 响应与模型名子串匹配，输出<strong>在线率、延迟、运行状态</strong>；<strong>掺水率</strong>需对话级深度质检。下方「在线检测」直连真实探测，数据与全站库一致时可在排行中查看。</p>
+    <p class="hero-desc i18n-en">OpenAI-compatible gateway checks from <code>/v1/models</code> substring matching. <strong>Live check</strong> below runs a real one-off probe; full rankings stay on the rank page.</p>
     <div class="hero-cta">
       <a class="btn btn-magic primary" href="/rank" data-i18n="home_cta">进入中转站排行</a>
-      <a class="btn btn-magic" href="/inclusion" data-i18n="home_cta2">申请收录</a>
+      <a class="btn btn-magic" href="/rank#inclusion" data-i18n="home_cta2">申请收录</a>
       <a class="btn btn-ghost" href="/docs" target="_blank" rel="noopener" data-i18n="home_cta_api">OpenAPI 文档</a>
     </div>
   </section>
+
+  <section class="section-block home-live-ribbon" id="home-stats-bar" aria-live="polite">
+    <div class="live-ribbon-inner">
+      <span class="live-dot"></span>
+      <span class="i18n-zh" data-i18n="home_live_ribbon">全站数据实时刷新中</span>
+      <span class="i18n-en" data-i18n="home_live_ribbon_en">Live</span>
+      <time id="home-stat-time" class="stat-time">—</time>
+    </div>
+    <div class="stat-badges">
+      <div class="stat-pill"><span class="n" id="home-stat-enabled">0</span><span class="l" data-i18n="stat_enabled">已启用站点</span></div>
+      <div class="stat-pill"><span class="n" id="home-stat-samples">0</span><span class="l" data-i18n="stat_samples">窗口内探测次数</span></div>
+      <div class="stat-pill"><span class="l" data-i18n="stat_window">统计窗口</span> <span class="n" id="home-stat-window">24</span> h</div>
+    </div>
+  </section>
+
+  <div class="home-split">
+    <section class="home-detector magic-card float-card" id="home-detector">
+      <h2 class="h2-magic"><span data-i18n="detector_h2">在线检测</span> <span class="tag-beta">LIVE</span></h2>
+      <p class="detector-hint i18n-zh" data-i18n="detector_hint">输入任意 OpenAI 兼容「API 根地址」，可选填 Key（仅本次请求经服务器转发，<strong>不作持久保存</strong>）。请求 <code>GET 根地址+检测路径</code> 并在返回中匹配下方模型子串。受频控，请勿滥用。</p>
+      <p class="detector-hint i18n-en" data-i18n="detector_hint_en">One-off GET to your base + path. API key is used for this request only, not stored. Rate-limited.</p>
+      <form id="form-try-probe" class="detector-form" autocomplete="off">
+        <label>
+          <span data-i18n="detector_api">API 根地址</span>
+          <input name="base_url" type="url" required placeholder="https://api.example.com" class="in-magic"/>
+        </label>
+        <label>
+          <span data-i18n="detector_key">API Key</span>
+          <input name="api_key" type="password" class="in-magic" placeholder="sk-…" autocomplete="off"/>
+        </label>
+        <label>
+          <span data-i18n="detector_path">检测路径</span>
+          <input name="check_path" type="text" class="in-magic" value="/v1/models"/>
+        </label>
+        <div class="model-pick" data-i18n="detector_models_hint">结果将显示各目标模型是否在返回中出现（子串匹配）：</div>
+        <button type="submit" class="btn btn-magic primary full" data-i18n="detector_go">开始检测</button>
+      </form>
+      <div id="probe-result" class="probe-result" hidden></div>
+    </section>
+
+    <section class="home-broadcast magic-card float-card" id="home-broadcast">
+      <h2 class="h2-magic" data-i18n="home_broadcast_h2">全站监测摘要</h2>
+      <p class="small i18n-zh" data-i18n="home_broadcast_p">与中转站排行同一数据源，每 10 秒从服务器拉取一次。</p>
+      <p class="small i18n-en" data-i18n="home_broadcast_p">Same window as rank; polled every 10s.</p>
+      <div class="table-wrap table-magic home-mini">
+        <table class="data-table" id="home-live-table">
+          <thead>
+            <tr>
+              <th data-i18n="col_rank">排名</th>
+              <th data-i18n="col_site2">名称</th>
+              <th data-i18n="col_window_ok">窗口成功率</th>
+              <th data-i18n="col_lat">延迟</th>
+            </tr>
+          </thead>
+          <tbody id="home-live-tbody">
+            <tr><td colspan="4" class="muted">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
 
   <section class="bento" aria-label="能力概览">
     <article class="magic-card bento-a">
@@ -70,25 +135,24 @@
   <section class="section-block faq-magic" aria-label="常见问题">
     <h2 class="h2-magic" data-i18n="home_faq_h">常见问题</h2>
     <details class="faq-item i18n-zh" open>
-      <summary>什么是「中转站」检测？</summary>
-      <p>很多第三方提供「统一 OpenAI 兼容地址」转发多家上游。中测在<strong>不保存你的业务对话</strong>的前提下，对公开可探测的接口做健康与模型目录层面的核验，帮助你在长期付费前多一层技术判断。</p>
+      <summary>在线检测和排行里的数据有什么区别？</summary>
+      <p>「在线检测」是<strong>你刚刚指定地址</strong>的一次即时请求结果；「排行」是本站已收录、按周期批量探测的<strong>全站时间窗口统计</strong>，更利于横向对比多家站点。</p>
+    </details>
+    <details class="faq-item i18n-zh">
+      <summary>会保存我的 Key 吗？</summary>
+      <p>试探测的 Key 只在当前 HTTP 请求中作为 Authorization 头转发，<strong>不写入数据库</strong>。仍建议您使用子账号或只读/测试用 Key。</p>
     </details>
     <details class="faq-item i18n-zh">
       <summary>和仅测连通性有什么区别？</summary>
-      <p>除连通性外，我们关注<strong>模型目录是否声称提供目标线号</strong>，并分模型给出在线率与延迟分布；与「照妖镜」类站点一样，更偏向<strong>可复核的技术指标</strong>展示。</p>
-    </details>
-    <details class="faq-item i18n-zh">
-      <summary>数据多久更新？</summary>
-      <p>由服务端轮询周期决定（如每数分钟对全部启用站点探测一轮）。排行走 JSON 时也会带上统计窗口与版本号。</p>
+      <p>除连通性外，我们关注<strong>模型目录是否声称提供目标线号</strong>，并分模型给出在线率与延迟分布；与照妖镜类站点一样，更偏向可复核的指标展示。</p>
     </details>
     <details class="faq-item i18n-en">
       <summary>What is being tested?</summary>
-      <p>We probe public OpenAI-compatible <code>/v1/models</code> style endpoints and match tracked model ID substrings—without storing your private prompts.</p>
-    </details>
-    <details class="faq-item i18n-en">
-      <summary>Beyond a simple ping?</summary>
-      <p>We surface per-model presence, online rate, and latency in a window—closer to what ranking sites like 照妖镜 show as verifiable numbers.</p>
+      <p>We probe public <code>/v1/models</code> endpoints and match tracked model ID substrings—keys are not stored.</p>
     </details>
   </section>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/live.js" defer></script>
 {% endblock %}
