@@ -3,6 +3,8 @@ data/app.db
 data/*.db
 # 含 API Key 的站点种子，仅部署机本地使用，勿提交
 data/seed_sites.json
+data/_prices_export.json
+data/seed_sites.merged.json
 .venv/
 venv/
 __pycache__/
