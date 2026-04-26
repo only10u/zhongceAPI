@@ -29,7 +29,8 @@ _PAGE_HTML = """<!DOCTYPE html>
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>中转站检测排名</title>
+  <meta name="description" content="中测 — 中转站 API 检测平台，海外节点多路探测与排名。"/>
+  <title>中测 — 中转站 API 检测平台</title>
   <style>
     :root { --bg: #0f1419; --fg: #e7e9ea; --muted: #8b98a5; --border: #38444d; --accent: #1d9bf0; }
     * { box-sizing: border-box; }
@@ -48,7 +49,8 @@ _PAGE_HTML = """<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <h1>中转站检测排名</h1>
+  <h1>中测</h1>
+  <p class="meta" style="margin-top:0">中转站 API 检测平台</p>
   <p class="meta" id="meta">加载中…</p>
   <div style="overflow-x: auto">
     <table>
@@ -219,7 +221,8 @@ def _probe_one_sync(relay_id: int) -> tuple[ProbeResult, str | None]:
 
 
 app = FastAPI(
-    title="多中转站探测与排名",
+    title="中测",
+    description="中转站 API 检测平台 — 多中转探测、统计与排名（海外检测节点）",
     version=__version__,
     lifespan=lifespan,
 )
