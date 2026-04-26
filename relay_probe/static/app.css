@@ -157,7 +157,7 @@ main.main { flex: 1; padding: 1.5rem; width: 100%; }
   padding-bottom: 2.5rem;
 }
 /* 管理员 · 中转编辑 */
-.admin-relay-list { display: flex; flex-direction: column; gap: 1.25rem; max-width: 52rem; }
+.admin-relay-list { display: flex; flex-direction: column; gap: 1.25rem; max-width: 1200px; }
 .admin-relay-h3 { margin: 0 0 0.75rem; font-size: 1.05rem; font-weight: 600; letter-spacing: -0.02em; }
 .f-relay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem 1rem; align-items: end; }
 .f-relay-grid .span2 { grid-column: 1 / -1; }
@@ -166,6 +166,28 @@ main.main { flex: 1; padding: 1.5rem; width: 100%; }
 .f-relay-grid label.chkb { flex-direction: row; align-items: center; gap: 0.4rem; }
 .admin-relay-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .admin-relay-actions .msg { font-size: 0.9rem; }
+
+.admin-relay-hub {
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  background: linear-gradient(165deg, rgba(124, 58, 237, 0.06), transparent 40%);
+}
+.admin-relay-hub-head { margin-bottom: 1rem; }
+.admin-relay-hub-title { margin: 0 0 0.5rem; }
+.admin-relay-hub-lead { margin: 0 0 0.65rem; font-size: 0.9rem; line-height: 1.55; color: var(--muted); max-width: 52rem; }
+.admin-relay-hub-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+.admin-relay-subh { font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; color: var(--fg); }
+.admin-relay-hint { margin: 0 0 1rem; max-width: 48rem; }
+.admin-relay-overview-wrap { margin-top: 0.5rem; overflow-x: auto; }
+.admin-relay-overview .url { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-relay-overview .td-ellipsis { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; }
+.mono-sm { font-size: 0.8rem; }
+.btn-sm { font-size: 0.82rem; padding: 0.28rem 0.65rem; min-height: auto; }
+.admin-kv-badge {
+  display: inline-block; margin-left: 0.35rem; padding: 0.1rem 0.35rem; border-radius: 4px;
+  font-size: 0.68rem; font-weight: 700; vertical-align: middle;
+  background: rgba(16, 185, 129, 0.2); color: #34d399; letter-spacing: 0.02em;
+}
+.admin-kv-badge.is-off { background: rgba(113, 113, 122, 0.25); color: var(--muted); }
 
 /* 独立报告页 /report/{id} */
 .report-page { max-width: 900px; margin: 0 auto; }
