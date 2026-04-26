@@ -179,3 +179,41 @@ def build_home_stats(
         "by_model": dash["by_model"],
         "legacy_top": leg[:12],
     }
+
+
+def build_relay_model_matrix(
+    db: Session, window_hours: int | None = None
+) -> dict[str, Any]:
+    """
+    站点 × 模型 覆盖矩阵；与分榜同窗口。数据来自本库，非外站抓取。
+    """
+    h = window_hours if window_hours is not None else settings.ranking_window_hours
+    fd = build_full_dashboard(db, h)
+    by_model = fd["by_model"]
+    relay_cells: dict[int, dict[str, Any]] = {}
+    order: list[int] = []
+    for m in TRACKED_MODELS:
+        slug = m["slug"]
+        for row in by_model.get(slug) or []:
+            rid = int(row["relay_id"])
+            if rid not in relay_cells:
+                order.append(rid)
+                relay_cells[rid] = {
+                    "relay_id": rid,
+                    "name": row["name"],
+                    "base_url": row["base_url"],
+                    "group": row.get("group") or "—",
+                    "by_slug": {},
+                }
+            relay_cells[rid]["by_slug"][slug] = {
+                "online_rate_pct": row.get("online_rate_pct"),
+                "samples": int(row.get("samples") or 0),
+                "status": row.get("status"),
+                "status_class": row.get("status_class") or "st-muted",
+            }
+    return {
+        "window_hours": h,
+        "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "models_meta": fd["models_meta"],
+        "rows": [relay_cells[rid] for rid in order],
+    }

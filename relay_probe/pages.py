@@ -26,7 +26,11 @@ from relay_probe.models import (
     Relay,
     User,
 )
-from relay_probe.dashboard_stats import build_full_dashboard, build_home_stats
+from relay_probe.dashboard_stats import (
+    build_full_dashboard,
+    build_home_stats,
+    build_relay_model_matrix,
+)
 from relay_probe.model_catalog import TRACKED_MODELS, match_models
 from relay_probe.probe import result_to_dict, run_probe
 from relay_probe.ranking import build_ranking_rows
@@ -186,6 +190,60 @@ def api_home_stats(
     return JSONResponse(content=out)
 
 
+@router.get("/api/relay-matrix")
+def api_relay_matrix(
+    window_hours: int | None = None,
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """全站 站点乘模型 矩阵 JSON（与 hvoy.ai 同六线目标；数据来本库探测）。"""
+    h = window_hours or settings.ranking_window_hours
+    out = build_relay_model_matrix(db, window_hours=h)
+    out["version"] = __version__
+    return JSONResponse(content=out)
+
+
+def _kuma_service_status(
+    res: object, model_matches: dict[str, bool]
+) -> dict[str, Any]:
+    """对齐 Uptime Kuma 式状态：up / degraded / down + 六线摘要。"""
+    st = "down"
+    sc = getattr(res, "http_status", None)
+    if getattr(res, "error", None) and sc is None:
+        st = "down"
+    elif sc is not None and 200 <= int(sc) < 300:
+        st = "up"
+    elif sc is not None and int(sc) in (401, 403, 422, 429):
+        st = "degraded"
+    elif sc is not None and 300 <= int(sc) < 500:
+        st = "degraded"
+    else:
+        st = "down"
+    total = len(TRACKED_MODELS)
+    hit = sum(1 for m in TRACKED_MODELS if model_matches.get(m["slug"]))
+    model_detail: list[dict[str, Any]] = []
+    for m in TRACKED_MODELS:  # 与 hvoy 首页六线目标一致
+        slug = m["slug"]
+        model_detail.append(
+            {
+                "slug": slug,
+                "name_zh": m["name_zh"],
+                "name_en": m["name_en"],
+                "present": bool(model_matches.get(slug)),
+            }
+        )
+    return {
+        "status": st,
+        "status_emoji": {"up": "🟢", "degraded": "🟡", "down": "🔴"}.get(
+            st, "⚪"
+        ),
+        "http_status": sc,
+        "model_hits": hit,
+        "model_tracked": total,
+        "model_hit_ratio": round(hit / total, 3) if total else 0.0,
+        "model_detail": model_detail,
+    }
+
+
 @router.post("/api/try-probe")
 async def api_try_probe(
     request: Request,
@@ -216,6 +274,9 @@ async def api_try_probe(
     out = result_to_dict(res, include_body=False)
     out["model_matches"] = matches
     out["check_path_used"] = path
+    kuma = _kuma_service_status(res, matches)
+    out["service_status"] = kuma
+    out["checked_at"] = datetime.now(timezone.utc).isoformat()
     return JSONResponse(content=out)
 
 

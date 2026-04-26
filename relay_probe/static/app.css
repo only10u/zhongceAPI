@@ -535,3 +535,47 @@ h2 { font-size: 1.1rem; }
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Uptime 风格 + 全站条 + 矩阵 + 图表 */
+.kuma-appstrip {
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(12, 12, 18, 0.6);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.kuma-strip-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.kuma-strip-dot.kuma-up { background: #34d399; box-shadow: 0 0 6px #34d399; }
+.kuma-strip-dot.kuma-down { background: #f87171; }
+.kuma-uptime-bars {
+  display: flex; gap: 3px; justify-content: center; margin: 0.4rem 0; flex-wrap: wrap;
+}
+.kuma-uptime-seg { width: 10px; height: 4px; border-radius: 2px; background: #27272a; transition: background 0.2s; }
+.kuma-uptime-seg.seg-ok { background: linear-gradient(90deg, #34d399, #a78bfa); }
+.kuma-uptime-seg.seg-bad { background: #7f1d1d; }
+.probe-kuma-pill { margin-top: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 10px; border: 1px solid var(--border); font-size: 0.88rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.probe-kuma-pill.kuma-up { border-color: rgba(52, 211, 153, 0.4); }
+.probe-kuma-pill.kuma-degraded { border-color: rgba(251, 191, 36, 0.4); }
+.probe-kuma-pill.kuma-down { border-color: rgba(248, 113, 113, 0.4); }
+.probe-viz { margin-top: 0.9rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 12px; }
+.probe-viz-title { font-size: 0.9rem; font-weight: 600; margin: 0 0 0.5rem; }
+.probe-viz-sub { font-size: 0.75rem; color: var(--muted); margin: 0.4rem 0; }
+.probe-viz-row { display: grid; grid-template-columns: 1fr 180px; gap: 0.75rem; align-items: start; }
+@media (max-width: 700px) { .probe-viz-row { grid-template-columns: 1fr; } }
+.probe-viz-canvas { max-width: 100%; }
+.probe-viz-d { max-width: 200px; margin: 0 auto; }
+.matrix-section { max-width: 100%; overflow: hidden; }
+.matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.matrix-table { min-width: 640px; font-size: 0.8rem; }
+.th-matrix, .th-site, .th-base { font-size: 0.7rem; white-space: nowrap; }
+.td-mat { text-align: center; font-variant-numeric: tabular-nums; }
+.td-mat-name { max-width: 7rem; font-weight: 600; }
+.td-mat.st-ok { color: #34d399; }
+.td-mat.st-warn { color: #fbbf24; }
+.td-mat.st-muted { color: var(--muted); }
+.matrix-wrap { border-radius: 12px; }

@@ -31,10 +31,13 @@
       {% endif %}
     </div>
   </header>
+  <div class="kuma-appstrip" id="kuma-appstrip" hidden aria-label="服务状态">
+    <span class="kuma-strip-dot" id="kuma-app-health"></span>
+    <span id="kuma-app-line">—</span>
+  </div>
   <main class="main">{% block main %}{% endblock %}</main>
   <footer class="foot">
     <span data-i18n="foot_copy">中测</span> ·
-    <a href="/docs" target="_blank" rel="noopener">API</a> ·
     <a href="https://t.me/only10u" target="_blank" rel="noopener" data-i18n="foot_tg">Telegram: @only10u</a>
   </footer>
   <script src="/static/app.js" defer></script>

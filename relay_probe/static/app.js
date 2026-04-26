@@ -73,6 +73,9 @@
       f_old: "原密码",
       f_new: "新密码",
       f_save: "保存新密码",
+      matrix_h2: "全站六线模型覆盖",
+      viz_title: "本检测 · 六线模型",
+      viz_lat: "近 12 次本机检测延迟",
       register_title: "注册",
       login_h2: "登录",
       login_hint: "",
@@ -155,6 +158,9 @@
       f_new: "New password",
       f_save: "Update",
       register_title: "Register",
+      matrix_h2: "Six model lines · your relays",
+      viz_title: "This check",
+      viz_lat: "Last 12 one-off latencies (browser only)",
       login_h2: "Sign in",
       login_hint: "",
       f_user: "Username",
@@ -209,4 +215,25 @@
       location.href = "/";
     });
   }
+
+  const strip = document.getElementById("kuma-appstrip");
+  const stripDot = document.getElementById("kuma-app-health");
+  const stripLine = document.getElementById("kuma-app-line");
+  function kumaAppStrip() {
+    if (!strip) return;
+    fetch("/health")
+      .then((r) => r.json())
+      .then((d) => {
+        strip.hidden = false;
+        if (stripLine) stripLine.textContent = d.status === "ok" ? "中测 API 正常" : "—";
+        if (stripDot) stripDot.className = d.status === "ok" ? "kuma-strip-dot kuma-up" : "kuma-strip-dot kuma-down";
+      })
+      .catch(() => {
+        strip.hidden = false;
+        if (stripLine) stripLine.textContent = "API 不可达";
+        if (stripDot) stripDot.className = "kuma-strip-dot kuma-down";
+      });
+  }
+  kumaAppStrip();
+  setInterval(kumaAppStrip, 120000);
 })();

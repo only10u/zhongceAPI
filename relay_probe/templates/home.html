@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}首页{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+{% endblock %}
 {% block main %}
 <div class="home-magic home-bleed" id="home-page-root">
   <div class="float-orbs" aria-hidden="true">
@@ -31,6 +34,7 @@
       <span class="i18n-en" data-i18n="home_live_ribbon_en">Live</span>
       <time id="home-stat-time" class="stat-time">—</time>
     </div>
+    <div class="kuma-uptime-bars" id="kuma-uptime-bars" title="Uptime 风格近次同步条（本地心跳）" aria-hidden="true"></div>
     <div class="stat-badges">
       <div class="stat-pill"><span class="n" id="home-stat-enabled">0</span><span class="l" data-i18n="stat_enabled">已启用站点</span></div>
       <div class="stat-pill"><span class="n" id="home-stat-samples">0</span><span class="l" data-i18n="stat_samples">窗口内探测次数</span></div>
@@ -59,7 +63,21 @@
         <div class="model-pick" data-i18n="detector_models_hint">结果将显示各目标模型是否在返回中出现（子串匹配）：</div>
         <button type="submit" class="btn btn-magic primary full" data-i18n="detector_go">开始检测</button>
       </form>
+      <div id="probe-kuma-pill" class="probe-kuma-pill" hidden>
+        <span class="kuma-pill" id="probe-svc-emoji">—</span>
+        <span id="probe-svc-line">—</span>
+        <time id="probe-svc-time" class="stat-time">—</time>
+      </div>
       <div id="probe-result" class="probe-result" hidden></div>
+      <div class="probe-viz" id="probe-viz" hidden>
+        <p class="probe-viz-title" data-i18n="viz_title">本检测 · 六线模型命中间览</p>
+        <div class="probe-viz-row">
+          <div class="probe-viz-canvas"><canvas id="chart-models-h" height="200"></canvas></div>
+          <div class="probe-viz-canvas probe-viz-d"><canvas id="chart-hit-d" width="200" height="200"></canvas></div>
+        </div>
+        <p class="probe-viz-sub" data-i18n="viz_lat">近 12 次本机检测延迟 (ms, 仅浏览器)</p>
+        <div class="probe-viz-line"><canvas id="chart-lat-line" height="100"></canvas></div>
+      </div>
     </section>
 
     <section class="home-broadcast magic-card float-card" id="home-broadcast">
@@ -83,6 +101,23 @@
       </div>
     </section>
   </div>
+
+  <section class="section-block matrix-section" id="matrix-section" aria-label="全站模型覆盖">
+    <h2 class="h2-magic" data-i18n="matrix_h2">全站六线模型覆盖（与禾维同目标线）</h2>
+    <p class="section-lead i18n-zh">
+      下列为<strong>本库已收录</strong>站点在六条模型线（与 <a href="https://hvoy.ai/" target="_blank" rel="noopener">禾维</a> 首页表同一目标名）在统计窗口内的同步/命中概览。禾维<b>不对外提供</b>可机器批量拉取的全量站点列表，无法自动「镜像」其全表；需你把 Base 列表写入 <code>data/seed_sites.json</code> 或管理端接口收录后，方在此展示。<strong>一般不需要</strong> 禾维的 Key；仅当对方网关对 <code>GET /v1/models</code> 强鉴权时，你在本页「在线检测」里为<strong>单测</strong>填 Key 即可，服务器不落库。
+    </p>
+    <p class="section-lead i18n-en">Matrix uses relays in <strong>your</strong> database for the same six model lines as <a href="https://hvoy.ai/" target="_blank" rel="noopener">Hvoy</a> targets. Hvoy has no public bulk API—add bases via <code>seed_sites</code> or admin. You usually <strong>do not need</strong> Hvoy or third-party keys; only if <code>GET /v1/models</code> requires auth, use a key in the one-off check (not stored).</p>
+    <p class="small muted" id="matrix-updated">—</p>
+    <div class="table-wrap table-magic matrix-wrap">
+      <div class="matrix-scroll" id="matrix-table-wrap">
+        <table class="data-table matrix-table" id="matrix-table">
+          <thead id="matrix-thead"></thead>
+          <tbody id="matrix-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
   <section class="bento" aria-label="能力概览">
     <article class="magic-card bento-a">
