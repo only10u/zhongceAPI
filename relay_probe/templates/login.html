@@ -1,40 +1,5 @@
 {% extends "base.html" %}
 {% block title %}登录{% endblock %}
 {% block main %}
-<div class="card magic-card narrow">
-  <h2 data-i18n="login_h2">登录</h2>
-  <p class="hint" data-i18n="login_hint">未注册可先注册普通账号；管理员账号由 .env 首启或后台分配。</p>
-  <form id="f-login" class="form">
-    <label><span data-i18n="f_user">用户名</span> <input name="username" required autocomplete="username"/></label>
-    <label><span data-i18n="f_pass">密码</span> <input name="password" type="password" required autocomplete="current-password"/></label>
-    <button class="btn primary" type="submit" data-i18n="f_submit">登录</button>
-  </form>
-  <h3 class="mt" data-i18n="reg_h3">注册</h3>
-  <form id="f-reg" class="form">
-    <label><span data-i18n="f_user">用户名</span> <input name="username" required/></label>
-    <label><span data-i18n="f_pass">密码</span> <input name="password" type="password" required/></label>
-    <button class="btn" type="submit" data-i18n="reg_btn">注册</button>
-  </form>
-  <p id="msg" class="msg"></p>
-</div>
-{% endblock %}
-{% block scripts %}
-<script>
-  document.getElementById("f-login").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const r = await fetch("/api/auth/login", { method: "POST", body: fd, credentials: "same-origin" });
-    const t = document.getElementById("msg");
-    if (r.ok) { location.href = new URLSearchParams(location.search).get("next") || "/workspace"; return; }
-    t.textContent = (await r.json().catch(() => ({}))).detail || r.status;
-  });
-  document.getElementById("f-reg").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const r = await fetch("/api/auth/register", { method: "POST", body: fd, credentials: "same-origin" });
-    const t = document.getElementById("msg");
-    if (r.ok) { t.textContent = "OK"; location.href = "/workspace"; return; }
-    t.textContent = (await r.json().catch(() => ({}))).detail || r.status;
-  });
-</script>
+<div class="auth-page-landing" id="auth-page-only" data-auth-only="1" aria-hidden="true"></div>
 {% endblock %}

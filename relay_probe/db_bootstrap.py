@@ -61,13 +61,7 @@ def import_seed_sites_from_json() -> int:
             bu = (item.get("base_url") or "").strip()
             if not name or not bu:
                 continue
-            exists = (
-                db.query(Relay)
-                .filter(Relay.base_url == bu.rstrip("/"))
-                .first()
-            )
-            if exists:
-                continue
+            bu_n = bu.rstrip("/")
             dlab = item.get("dilution_label")
             dovr = item.get("dilution_override")
             dflt: Optional[float] = None
@@ -76,22 +70,56 @@ def import_seed_sites_from_json() -> int:
                     dflt = float(dovr)
                 except (TypeError, ValueError):
                     dflt = None
+            check_path = (item.get("check_path") or "/v1/models").strip() or "/v1/models"
+            enabled = bool(item.get("enabled", True))
+            gname = (item.get("group") or None)
+            sprice = (item.get("price") or None)
+            dilab = (str(dlab).strip() if dlab else None)
+            key_raw = item.get("api_key")
+            key: str | None
+            if key_raw is None:
+                key = None
+            else:
+                key = str(key_raw).strip() or None
+
+            exists = (
+                db.query(Relay)
+                .filter(Relay.base_url == bu_n)
+                .first()
+            )
+            if exists:
+                # 同 base 再次出现在 seed 中时：更新名称、Key、价格等（便于同步多机）
+                exists.name = name
+                if "api_key" in item:
+                    exists.api_key = key
+                exists.check_path = check_path
+                exists.enabled = enabled
+                if gname is not None:
+                    exists.group_name = gname
+                if sprice is not None:
+                    exists.site_price = sprice
+                if dilab is not None:
+                    exists.dilution_label = dilab
+                if dflt is not None:
+                    exists.dilution_override = dflt
+                n += 1
+                continue
             r = Relay(
                 name=name,
-                base_url=bu.rstrip("/"),
-                api_key=item.get("api_key") or None,
-                check_path=item.get("check_path") or "/v1/models",
-                enabled=bool(item.get("enabled", True)),
-                group_name=(item.get("group") or None),
-                site_price=(item.get("price") or None),
-                dilution_label=(str(dlab).strip() if dlab else None),
+                base_url=bu_n,
+                api_key=key,
+                check_path=check_path,
+                enabled=enabled,
+                group_name=gname,
+                site_price=sprice,
+                dilution_label=dilab,
                 dilution_override=dflt,
             )
             db.add(r)
             n += 1
         if n:
             db.commit()
-            log.info("从 seed_sites.json 导入 %s 条中转", n)
+            log.info("从 seed_sites.json 新增或更新 %s 条中转", n)
         else:
             db.rollback()
     except Exception:  # noqa: BLE001

@@ -125,14 +125,14 @@
         </div>
         <div class="probe-metricbar" id="home-metricbar">
           <div class="pm-item"><span class="pm-k" data-i18n="m_lat">延迟 (ms)</span><span class="pm-v" id="m-v-lat">—</span></div>
-          <div class="pm-item"><span class="pm-k" data-i18n="m_tokps">Tokens/秒</span><span class="pm-v pm-tok-na" data-na="1">—</span></div>
-          <div class="pm-item"><span class="pm-k" data-i18n="m_tin">输入 Tokens</span><span class="pm-v pm-tok-na" data-na="1">—</span></div>
-          <div class="pm-item"><span class="pm-k" data-i18n="m_tout">输出 Tokens</span><span class="pm-v pm-tok-na" data-na="1">—</span></div>
-          <div class="pm-item"><span class="pm-k" data-i18n="m_tcr">缓存读 Tokens</span><span class="pm-v pm-tok-na" data-na="1">—</span></div>
-          <div class="pm-item"><span class="pm-k" data-i18n="m_tcw">缓存写 Tokens</span><span class="pm-v pm-tok-na" data-na="1">—</span></div>
+          <div class="pm-item"><span class="pm-k" data-i18n="m_tokps">Tokens/秒</span><span class="pm-v pm-tok-na" id="m-v-tps" data-na="1">—</span></div>
+          <div class="pm-item"><span class="pm-k" data-i18n="m_tin">输入 Tokens</span><span class="pm-v pm-tok-na" id="m-v-tin" data-na="1">—</span></div>
+          <div class="pm-item"><span class="pm-k" data-i18n="m_tout">输出 Tokens</span><span class="pm-v pm-tok-na" id="m-v-tout" data-na="1">—</span></div>
+          <div class="pm-item"><span class="pm-k" data-i18n="m_tcr">缓存读 Tokens</span><span class="pm-v pm-tok-na" id="m-v-tcr" data-na="1">—</span></div>
+          <div class="pm-item"><span class="pm-k" data-i18n="m_tcw">缓存写 Tokens</span><span class="pm-v pm-tok-na" id="m-v-tcw" data-na="1">—</span></div>
         </div>
-        <p class="small muted i18n-zh" data-i18n="m_knote">仅目录请求，不统计对话 Token；深度项本页未检。</p>
-        <p class="small muted i18n-en" data-i18n="m_knote_en">Models list only; no token usage.</p>
+        <p class="small muted i18n-zh" id="probe-metric-note-zh" data-i18n="m_knote">目录与对话请求由服务器实连；无 Key 时仅目录，不拉 Token 用量。深度项本页未检。</p>
+        <p class="small muted i18n-en" id="probe-metric-note-en" data-i18n="m_knote_en">With API key, we also POST /v1/chat/completions. Without a key, models list only. Deep checks not on this page.</p>
       </div>
       <div class="probe-viz" id="probe-viz" hidden>
         <p class="probe-viz-title" data-i18n="viz_title">本检测 · 三线模型命中间览</p>

@@ -13,6 +13,7 @@ def build_report_ui(
     matches: dict[str, bool],
     primary_slug: str,
     tr: dict[str, Any],
+    chat_usage: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     slugs = [m["slug"] for m in TRACKED_MODELS]
     http_ok = res.http_status is not None and 200 <= int(res.http_status) < 300
@@ -59,6 +60,16 @@ def build_report_ui(
         "warn" if three_hits > 0 else "fail"
     )
 
+    ch = chat_usage or {}
+    if ch.get("skipped"):
+        chat_state: str = "skip"
+    elif ch.get("ok") and ch.get("usage_parsed"):
+        chat_state = "pass"
+    elif ch.get("ok") and not ch.get("usage_parsed"):
+        chat_state = "warn"
+    else:
+        chat_state = "fail" if (ch and not ch.get("skipped")) else "skip"
+
     checklist: list[dict[str, Any]] = [
         {
             "id": "http",
@@ -85,10 +96,16 @@ def build_report_ui(
             "text_en": "Latency available (models listing)",
         },
         {
+            "id": "chat",
+            "state": chat_state,
+            "text_zh": "POST /v1/chat/completions 实测并解析 Token 用量（需 API Key）",
+            "text_en": "POST /v1/chat/completions with usage (API key required)",
+        },
+        {
             "id": "deep",
             "state": "skip",
-            "text_zh": "身份/签名/知识/多轮对话等深度项",
-            "text_en": "Deep checks (not run; no chat request)",
+            "text_zh": "身份/签名/多轮等更深层级（本页未检）",
+            "text_en": "Identity & deeper checks (not run on this page)",
         },
     ]
 

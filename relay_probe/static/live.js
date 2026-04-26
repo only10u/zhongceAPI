@@ -306,9 +306,39 @@
     if (hel) hel.textContent = ru.headline_en || "—";
     setText("m-v-lat", j.latency_ms != null ? String(j.latency_ms) : "—");
     const na = metricNaLabel();
-    document.querySelectorAll("#home-metricbar .pm-tok-na").forEach((el) => {
-      el.textContent = na;
+    const ch = j.chat_usage || {};
+    const up = ch.usage_parsed === true;
+    const fmtInt = (n) => (n == null || Number.isNaN(n) ? na : String(Math.trunc(n)));
+    const tps = document.getElementById("m-v-tps");
+    const tIn = document.getElementById("m-v-tin");
+    const tOut = document.getElementById("m-v-tout");
+    const tCr = document.getElementById("m-v-tcr");
+    const tCw = document.getElementById("m-v-tcw");
+    if (tps) tps.textContent = up && ch.tokens_per_sec != null ? String(ch.tokens_per_sec) : na;
+    if (tIn) tIn.textContent = up ? fmtInt(ch.prompt_tokens) : na;
+    if (tOut) tOut.textContent = up ? fmtInt(ch.completion_tokens) : na;
+    if (tCr) tCr.textContent = up ? fmtInt(ch.cache_read) : na;
+    if (tCw) tCw.textContent = up ? fmtInt(ch.cache_write) : na;
+    [tps, tIn, tOut, tCr, tCw].forEach((el) => {
+      if (el) el.classList.toggle("pm-tok-na", !up);
     });
+    const nZh = document.getElementById("probe-metric-note-zh");
+    const nEn = document.getElementById("probe-metric-note-en");
+    if (nZh && nEn) {
+      if (ch.skipped) {
+        nZh.textContent = "未填写 API Key，仅发起 GET /v1/models，不拉对话 Token 用量。填写 Key 后会额外 POST 一次 /v1/chat/completions 解析 usage。";
+        nEn.textContent = "No API key: only GET /v1/models. Add a key to also POST /v1/chat/completions and read usage.";
+      } else if (up) {
+        nZh.textContent =
+          "已使用所选主评线的 model id 实连 " +
+          (ch.model_id_used || "") +
+          " 并解析返回中的 usage。延迟 (ms) 为目录请求；对话为独立一次请求。深度项本页未检。";
+        nEn.textContent = "Token figures come from one non-streaming chat completion. Latency is the models list request. Deep checks not on this page.";
+      } else {
+        nZh.textContent = "未解析到有效 Token 数据：" + (ch.error || "失败") + "。可确认 model id 在网关中可用。目录延迟仍见左栏。";
+        nEn.textContent = "No usage parsed: " + (ch.error || "failed");
+      }
+    }
     const cl = document.getElementById("home-probe-checklist");
     if (cl) {
       cl.textContent = "";

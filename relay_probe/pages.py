@@ -43,7 +43,12 @@ from relay_probe.model_catalog import (
     get_tracked_by_slug,
     match_models,
 )
-from relay_probe.probe import result_to_dict, run_probe
+from relay_probe.probe import (
+    chat_usage_to_dict,
+    result_to_dict,
+    run_chat_completions_usage,
+    run_probe,
+)
 from relay_probe.probe_ui import build_report_ui
 from relay_probe.ranking import build_ranking_rows
 from relay_probe.relay_apply import apply_relay_update
@@ -497,6 +502,23 @@ async def api_try_probe(
     res = await run_in_threadpool(
         run_probe, bu, path, float(settings.http_timeout_sec), key
     )
+    chat_usage: dict[str, Any]
+    if key:
+        cu = await run_in_threadpool(
+            run_chat_completions_usage,
+            bu,
+            str(tr.get("card_id", "")),
+            float(settings.http_timeout_sec),
+            key,
+        )
+        chat_usage = chat_usage_to_dict(cu)
+    else:
+        chat_usage = {
+            "skipped": True,
+            "reason": "no_api_key",
+            "ok": False,
+            "usage_parsed": False,
+        }
     matches: dict[str, bool] = {}
     if res.body_text:
         matches = match_models(res.body_text.lower())
@@ -513,7 +535,8 @@ async def api_try_probe(
     out["service_status"] = kuma
     out["checked_at"] = datetime.now(timezone.utc).isoformat()
     out["probe_base_url"] = bu
-    out["report_ui"] = build_report_ui(res, matches, msel, tr)
+    out["chat_usage"] = chat_usage
+    out["report_ui"] = build_report_ui(res, matches, msel, tr, chat_usage=chat_usage)
     return JSONResponse(content=out)
 
 

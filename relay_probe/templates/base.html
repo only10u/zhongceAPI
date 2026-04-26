@@ -43,7 +43,7 @@
         {% if user.is_admin %}<a class="btn admin" href="/admin">Admin</a>{% endif %}
         <button type="button" class="btn-ghost" id="btn-logout" data-i18n="nav_logout">退出</button>
       {% else %}
-        <a class="btn" href="/login" data-i18n="nav_login">登录</a>
+        <a class="btn" href="/login" id="nav-auth-open" data-i18n="nav_login">登录</a>
       {% endif %}
     </div>
   </header>
@@ -52,6 +52,69 @@
     <span id="kuma-app-line">—</span>
   </div>
   <main class="main">{% block main %}{% endblock %}</main>
+
+  <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
+    <div class="auth-modal-backdrop" data-auth-close="1" tabindex="-1"></div>
+    <div class="auth-modal-wrap">
+      <div class="auth-modal-card" id="auth-modal-card">
+        <button type="button" class="auth-modal-x" id="auth-modal-x" data-i18n-aria="auth_aria_close" aria-label="关闭">×</button>
+        <div class="auth-modal-brand" aria-hidden="true">
+          <span class="auth-modal-logo" data-i18n="auth_brand_l">中</span>
+          <div>
+            <div class="auth-modal-name" data-i18n="brand">中测</div>
+            <div class="auth-modal-sub" data-i18n="subtitle">中转站 API 检测平台</div>
+          </div>
+        </div>
+        <div class="auth-tabs" role="tablist" aria-label="auth">
+          <button type="button" class="auth-tab is-on" id="auth-tab-in" data-mode="login" data-i18n="f_submit">登录</button>
+          <button type="button" class="auth-tab" id="auth-tab-up" data-mode="register" data-i18n="reg_btn">注册</button>
+        </div>
+        <div class="auth-surface" id="auth-surface-login">
+          <h2 class="auth-modal-h2" id="auth-modal-title" data-i18n="login_h2">登录</h2>
+          <p class="auth-modal-lead" data-i18n="auth_login_lead">使用已有账号登录</p>
+          <form id="f-auth-login" class="auth-form" autocomplete="on">
+            <label class="auth-label"><span class="auth-l" data-i18n="f_user">用户名</span>
+              <span class="auth-in-wrap">
+                <span class="auth-in-ico" aria-hidden="true">◎</span>
+                <input name="username" required autocomplete="username" class="auth-in"/>
+              </span>
+            </label>
+            <label class="auth-label"><span class="auth-l" data-i18n="f_pass">密码</span>
+              <span class="auth-in-wrap">
+                <span class="auth-in-ico" aria-hidden="true">◆</span>
+                <input name="password" type="password" required autocomplete="current-password" class="auth-in" data-auth-pw="login"/>
+              </span>
+            </label>
+            <button class="auth-submit auth-submit-primary" type="submit" data-i18n="f_submit">登录</button>
+          </form>
+        </div>
+        <div class="auth-surface" id="auth-surface-reg" hidden>
+          <h2 class="auth-modal-h2" data-i18n="auth_reg_title">创建账户</h2>
+          <p class="auth-modal-lead" data-i18n="auth_reg_sub">注册以开始使用中测</p>
+          <form id="f-auth-reg" class="auth-form" autocomplete="on">
+            <label class="auth-label"><span class="auth-l" data-i18n="f_user">用户名</span>
+              <span class="auth-in-wrap">
+                <span class="auth-in-ico" aria-hidden="true">◎</span>
+                <input name="username" required autocomplete="username" class="auth-in"/>
+              </span>
+            </label>
+            <label class="auth-label"><span class="auth-l" data-i18n="f_pass">密码</span>
+              <span class="auth-in-wrap">
+                <span class="auth-in-ico" aria-hidden="true">◆</span>
+                <input name="password" type="password" required autocomplete="new-password" class="auth-in" data-auth-pw="reg" minlength="6"/>
+              </span>
+            </label>
+            <p class="auth-pw-hint" data-i18n="auth_pw_hint">至少 6 个字符</p>
+            <button class="auth-submit auth-submit-primary" type="submit" data-i18n="reg_btn">注册</button>
+          </form>
+        </div>
+        <p class="auth-modal-msg" id="auth-modal-msg" role="status" aria-live="polite"></p>
+        <p class="auth-modal-foot" data-i18n="auth_foot">未注册可切换到「注册」创建普通账号；管理员由 .env 首启或后台分配。</p>
+        <p class="auth-modal-copy" data-i18n="auth_copyright">© 中测</p>
+      </div>
+    </div>
+  </div>
+
   <footer class="foot">
     <span data-i18n="foot_copy">中测</span> ·
     <a href="https://t.me/only10u" target="_blank" rel="noopener" data-i18n="foot_tg">Telegram: @only10u</a>

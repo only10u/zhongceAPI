@@ -105,8 +105,8 @@
       m_tcr: "缓存读 Tokens",
       m_tcw: "缓存写 Tokens",
       m_na: "不适用",
-      m_knote: "仅发起 GET /v1/models 目录请求，不统计对话 Token。深度项本页未检。",
-      m_knote_en: "GET /v1/models only; no token usage.",
+      m_knote: "目录与对话实连；无 Key 时仅目录。",
+      m_knote_en: "With API key, chat usage is probed. Without key, models only.",
       rep_rank_link: "查看全站排行",
       rep_by: "中测 / OpenAI-compatible 目录探测",
       probe_banner_sub: "试探测不保存你的 Key 与业务对话。为保障账户安全，建议优先使用测试专用 Key。我们重视你的隐私，可在合规场景下放心使用。",
@@ -129,6 +129,13 @@
       nav_presence_tip: "约 2 分钟内有活动视为在线；同实例内存统计（多机不合并）。",
       ad_traffic_h2: "日访问量（PV，UTC）",
       ad_traffic_p: "主站各可见页面「GET 成功」计一次（不含 /api、/static 等）。部署多实例时各库独立累加。",
+      auth_reg_title: "创建账户",
+      auth_reg_sub: "注册以开始使用中测",
+      auth_login_lead: "使用已有账号登录",
+      auth_pw_hint: "至少 6 个字符",
+      auth_foot: "未注册可切换到「注册」创建普通账号；管理员由 .env 首启或后台分配。",
+      auth_copyright: "© 中测",
+      auth_aria_close: "关闭",
     },
     en: {
       brand: "Zhongce",
@@ -232,8 +239,8 @@
       m_tcr: "Cache read",
       m_tcw: "Cache write",
       m_na: "N/A",
-      m_knote: "Only GET /v1/models; no chat token usage. Deep checks not run here.",
-      m_knote_en: "GET /v1/models only; no token usage.",
+      m_knote: "Models + optional chat usage with API key. Deep checks not on this page.",
+      m_knote_en: "With API key, one chat completion and usage. Without key, models only.",
       rep_rank_link: "Open full rankings",
       rep_by: "Zhongce · OpenAI-compatible models list probe",
       probe_banner_sub: "Probes do not store your key or chat content. Prefer a test-only key. We care about your privacy and security.",
@@ -256,6 +263,13 @@
       nav_presence_tip: "Activity within ~2 min counts as online. In-process count (not merged across workers).",
       ad_traffic_h2: "Daily page views (UTC)",
       ad_traffic_p: "One count per successful HTML GET (excludes /api, /static). Each app instance has its own counter.",
+      auth_reg_title: "Create account",
+      auth_reg_sub: "Register to use Zhongce",
+      auth_login_lead: "Sign in with an existing account",
+      auth_pw_hint: "At least 6 characters",
+      auth_foot: "New users: switch to \"Register\" for a normal account. Admins: set via .env on first run or the panel.",
+      auth_copyright: "© Zhongce",
+      auth_aria_close: "Close",
     },
   };
 
@@ -270,6 +284,10 @@
     document.querySelectorAll("[data-i18n-title]").forEach((el) => {
       const k = el.getAttribute("data-i18n-title");
       if (k && t[k]) el.setAttribute("title", t[k]);
+    });
+    document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+      const k = el.getAttribute("data-i18n-aria");
+      if (k && t[k]) el.setAttribute("aria-label", t[k]);
     });
     const sel = document.getElementById("lang");
     if (sel) sel.value = lang;
@@ -328,6 +346,98 @@
   }
   kumaAppStrip();
   setInterval(kumaAppStrip, 120000);
+
+  (function initAuthModal() {
+    const modal = document.getElementById("auth-modal");
+    if (!modal) return;
+    const sLogin = document.getElementById("auth-surface-login");
+    const sReg = document.getElementById("auth-surface-reg");
+    const tIn = document.getElementById("auth-tab-in");
+    const tUp = document.getElementById("auth-tab-up");
+    const msg = document.getElementById("auth-modal-msg");
+    const nav = document.getElementById("nav-auth-open");
+    const backdrop = modal.querySelector("[data-auth-close]");
+    const xBtn = document.getElementById("auth-modal-x");
+    const fLogin = document.getElementById("f-auth-login");
+    const fReg = document.getElementById("f-auth-reg");
+
+    function getNext() {
+      try {
+        return new URLSearchParams(location.search).get("next") || "/workspace";
+      } catch (e) {
+        return "/workspace";
+      }
+    }
+
+    function setMode(reg) {
+      if (!sLogin || !sReg) return;
+      sLogin.hidden = reg;
+      sReg.hidden = !reg;
+      if (tIn) tIn.classList.toggle("is-on", !reg);
+      if (tUp) tUp.classList.toggle("is-on", reg);
+      if (msg) msg.textContent = "";
+    }
+
+    function openAuth(mode) {
+      setMode(mode === "register");
+      modal.hidden = false;
+      document.body.classList.add("auth-modal-open");
+      if (getComputedStyle(document.body).overflow === "auto" || getComputedStyle(document.body).overflow === "visible") {
+        document.body.style.overflow = "hidden";
+      }
+    }
+
+    function closeAuth() {
+      modal.hidden = true;
+      document.body.classList.remove("auth-modal-open");
+      document.body.style.overflow = "";
+    }
+
+    if (tIn) tIn.addEventListener("click", () => setMode(false));
+    if (tUp) tUp.addEventListener("click", () => setMode(true));
+    if (backdrop) backdrop.addEventListener("click", closeAuth);
+    if (xBtn) xBtn.addEventListener("click", closeAuth);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !modal.hidden) closeAuth();
+    });
+    if (nav) {
+      nav.addEventListener("click", (e) => {
+        e.preventDefault();
+        openAuth("login");
+      });
+    }
+    if (fLogin) {
+      fLogin.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!msg) return;
+        const fd = new FormData(fLogin);
+        const r = await fetch("/api/auth/login", { method: "POST", body: fd, credentials: "same-origin" });
+        if (r.ok) {
+          location.href = getNext();
+          return;
+        }
+        msg.textContent = (await r.json().catch(() => ({}))).detail || String(r.status);
+      });
+    }
+    if (fReg) {
+      fReg.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!msg) return;
+        const fd = new FormData(fReg);
+        const r = await fetch("/api/auth/register", { method: "POST", body: fd, credentials: "same-origin" });
+        if (r.ok) {
+          location.href = getNext();
+          return;
+        }
+        msg.textContent = (await r.json().catch(() => ({}))).detail || String(r.status);
+      });
+    }
+    if (document.getElementById("auth-page-only")) {
+      const q = new URLSearchParams(location.search);
+      if (q.get("mode") === "register") openAuth("register");
+      else openAuth("login");
+    }
+  })();
 
   function newVisitorId() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {

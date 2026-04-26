@@ -16,6 +16,8 @@
   </header>
 
   {% set ru = report_payload.get("report_ui") or {} %}
+  {% set ch = report_payload.get("chat_usage") or {} %}
+  {% set up = ch.get("usage_parsed") %}
   {% set p = (ru.get("score_percent") or 0)|int %}
   <section class="probe-report-block magic-card" aria-label="report body">
     <div class="probe-report-head2">
@@ -47,14 +49,14 @@
     <div class="probe-metricbar">
       {% set _lat = report_payload.get("latency_ms") %}
       <div class="pm-item"><span class="pm-k" data-i18n="m_lat">延迟 (ms)</span><span class="pm-v">{% if _lat is not none %}{{ _lat|round(2) }}{% else %}—{% endif %}</span></div>
-      <div class="pm-item"><span class="pm-k" data-i18n="m_tokps">Tokens/秒</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
-      <div class="pm-item"><span class="pm-k" data-i18n="m_tin">输入 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
-      <div class="pm-item"><span class="pm-k" data-i18n="m_tout">输出 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
-      <div class="pm-item"><span class="pm-k" data-i18n="m_tcr">缓存读 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
-      <div class="pm-item"><span class="pm-k" data-i18n="m_tcw">缓存写 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tokps">Tokens/秒</span><span class="pm-v">{% if up and ch.get("tokens_per_sec") is not none %}{{ ch.get("tokens_per_sec") }}{% else %}<span data-i18n="m_na">不适用</span>{% endif %}</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tin">输入 Tokens</span><span class="pm-v">{% if up and ch.get("prompt_tokens") is not none %}{{ ch.get("prompt_tokens") }}{% else %}<span data-i18n="m_na">不适用</span>{% endif %}</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tout">输出 Tokens</span><span class="pm-v">{% if up and ch.get("completion_tokens") is not none %}{{ ch.get("completion_tokens") }}{% else %}<span data-i18n="m_na">不适用</span>{% endif %}</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tcr">缓存读 Tokens</span><span class="pm-v">{% if up and ch.get("cache_read") is not none %}{{ ch.get("cache_read") }}{% else %}<span data-i18n="m_na">不适用</span>{% endif %}</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tcw">缓存写 Tokens</span><span class="pm-v">{% if up and ch.get("cache_write") is not none %}{{ ch.get("cache_write") }}{% else %}<span data-i18n="m_na">不适用</span>{% endif %}</span></div>
     </div>
-    <p class="small muted i18n-zh" data-i18n="m_knote">仅发起 GET /v1/models 目录请求，不统计对话 Token。深度签名/多轮检测未执行。</p>
-    <p class="small muted i18n-en" data-i18n="m_knote_en">Only GET /v1/models; no chat token stats.</p>
+    <p class="small muted i18n-zh">{% if ch.get("skipped") %}未提供 Key，仅目录请求。{% elif up %}已 POST /v1/chat/completions 并解析 usage。深度项未测。{% else %}已尝试对话但无有效 Token 数据。{% endif %}</p>
+    <p class="small muted i18n-en">{% if ch.get("skipped") %}No key: models only.{% elif up %}Chat completion usage on file.{% else %}No usage parsed.{% endif %}</p>
   </section>
 </div>
 {% endblock %}

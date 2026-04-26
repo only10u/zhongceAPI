@@ -3,6 +3,9 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# 项目根（含 relay_probe/、data/），避免依赖启动时的 cwd
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 def _parse_base_list(raw: str) -> set[str]:
     out: set[str] = set()
@@ -53,7 +56,10 @@ class Settings(BaseSettings):
 
     @property
     def data_path(self) -> Path:
-        return Path(self.data_dir)
+        p = Path(self.data_dir)
+        if p.is_absolute():
+            return p
+        return (_PROJECT_ROOT / p).resolve()
 
     @property
     def database_url(self) -> str:
