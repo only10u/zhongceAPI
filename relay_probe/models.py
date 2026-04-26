@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -31,6 +31,8 @@ class Relay(Base):
     site_price: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     # 人工备注掺水率 0-100 或空（深度探测可后续接）
     dilution_override: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # 掺水率展示文案（如「几乎不」），优先生于纯数字
+    dilution_label: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, nullable=False
     )
@@ -52,6 +54,8 @@ class Relay(Base):
             "rank_boost": self.rank_boost,
             "group_name": self.group_name,
             "site_price": self.site_price,
+            "dilution_label": self.dilution_label,
+            "dilution_override": self.dilution_override,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -90,6 +94,28 @@ class ModelProbeSample(Base):
         DateTime(timezone=True), default=_utc_now, nullable=False, index=True
     )
     relay: Mapped[Relay] = relationship("Relay", back_populates="model_samples")
+
+
+class TrafficDay(Base):
+    """站可见页面 GET 的日 PV 聚合（UTC 日期）。"""
+
+    __tablename__ = "traffic_days"
+
+    day: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    page_views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class ProbeReport(Base):
+    """首页「分享报告」可读的 JSON 快照（短 id 公链，不含用户 Key）。"""
+
+    __tablename__ = "probe_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    public_id: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now, nullable=False, index=True
+    )
 
 
 class User(Base):

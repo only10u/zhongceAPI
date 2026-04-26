@@ -3,7 +3,17 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  {% if site_url %}
+  <link rel="canonical" href="{{ site_url }}{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}"/>
+  <meta name="author" content="中测"/>
+  <meta property="og:url" content="{{ site_url }}{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="中测 — 中转站 API 检测平台"/>
+  {% endif %}
   <title>{% block title %}中测{% endblock %} — 中转站 API 检测平台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/static/app.css"/>
   {% block head %}{% endblock %}
 </head>
@@ -15,8 +25,14 @@
     <nav class="nav">
       <a href="/" data-i18n="nav_home">首页</a>
       <a href="/rank" data-i18n="nav_rank">中转站排行</a>
+      <a href="/yiyuan" data-i18n="nav_yiyuan">一元模型</a>
     </nav>
     <div class="top-right">
+      <div class="presence-pill" id="nav-presence" data-i18n-title="nav_presence_tip" title="">
+        <span class="presence-ico" aria-hidden="true">👥</span>
+        <span class="presence-lbl" data-i18n="nav_presence_lbl">在线</span>
+        <span class="presence-num" id="presence-count" aria-live="polite">—</span>
+      </div>
       <button type="button" class="btn-ghost" id="btn-theme" title="主题">🌓</button>
       <select id="lang" class="lang-sel" aria-label="语言">
         <option value="zh">中文</option>

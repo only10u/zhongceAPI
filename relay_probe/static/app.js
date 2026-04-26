@@ -5,6 +5,7 @@
       subtitle: "中转站 API 检测平台",
       nav_home: "首页",
       nav_rank: "中转站排行",
+      nav_yiyuan: "一元模型",
       nav_inclusion: "中转站收录",
       nav_workspace: "工作台",
       nav_logout: "退出",
@@ -50,7 +51,9 @@
       detector_hint_en:
         "Base URL and optional key; key not stored, rate-limited.",
       detector_api: "API 根地址",
+      detector_api_label: "API 接口地址",
       detector_key: "API Key",
+      detector_key_label: "API Key",
       detector_path: "检测路径",
       detector_models_hint: "返回体中对目标模型的子串匹配：",
       detector_go: "开始检测",
@@ -81,8 +84,8 @@
       f_old: "原密码",
       f_new: "新密码",
       f_save: "保存新密码",
-      matrix_h2: "全站六线模型覆盖",
-      viz_title: "本检测 · 六线模型",
+      matrix_h2: "下列为本库已收录站点",
+      viz_title: "本检测 · 三线模型",
       viz_lat: "近 12 次本机检测延迟",
       register_title: "注册",
       login_h2: "登录",
@@ -92,12 +95,47 @@
       f_submit: "登录",
       reg_h3: "注册",
       reg_btn: "注册",
+      rep_h1: "在线检测报告",
+      rep_h2: "检测结果",
+      btn_share: "分享报告",
+      m_lat: "延迟 (ms)",
+      m_tokps: "Tokens/秒",
+      m_tin: "输入 Tokens",
+      m_tout: "输出 Tokens",
+      m_tcr: "缓存读 Tokens",
+      m_tcw: "缓存写 Tokens",
+      m_na: "不适用",
+      m_knote: "仅发起 GET /v1/models 目录请求，不统计对话 Token。深度项本页未检。",
+      m_knote_en: "GET /v1/models only; no token usage.",
+      rep_rank_link: "查看全站排行",
+      rep_by: "中测 / OpenAI-compatible 目录探测",
+      probe_banner_sub: "试探测不保存你的 Key 与业务对话。为保障账户安全，建议优先使用测试专用 Key。我们重视你的隐私，可在合规场景下放心使用。",
+      probe_banner_sub_en: "Probes do not store your key or chat content. Prefer a test-only key. We care about your privacy and security.",
+      cost_h2: "成本计算",
+      cost_sec: "价格参数",
+      cost_link_formula: "公式与拆解",
+      cost_hint:
+        "填写该站的官方美金单价、倍率、充值活动，试算实付约多少元人民币/百万 Token。与「一元模型」页同一公式。",
+      cost_hint_en:
+        "Enter USD/M, multiplier, top-up deal; estimate CNY per million tokens. Same formula as the ¥/token page.",
+      cost_p_usd: "官方美金单价（$/百万 Token）",
+      cost_mult: "站长倍率",
+      cost_rmb: "充值人民币（元）",
+      cost_credit: "充值所得额度",
+      cost_privacy: "仅在本机浏览器内计算，数据不上传。",
+      cost_privacy_en: "Computed in your browser only; nothing is uploaded.",
+      cost_btn: "计算",
+      nav_presence_lbl: "在线",
+      nav_presence_tip: "约 2 分钟内有活动视为在线；同实例内存统计（多机不合并）。",
+      ad_traffic_h2: "日访问量（PV，UTC）",
+      ad_traffic_p: "主站各可见页面「GET 成功」计一次（不含 /api、/static 等）。部署多实例时各库独立累加。",
     },
     en: {
       brand: "Zhongce",
       subtitle: "Relay API Health Board",
       nav_home: "Home",
       nav_rank: "Rankings",
+      nav_yiyuan: "¥/Token",
       nav_inclusion: "List a relay",
       nav_workspace: "Workspace",
       nav_logout: "Logout",
@@ -144,7 +182,9 @@
         "Base URL; optional key used only for this request, not stored.",
       detector_hint_en: "Base URL; key not stored, rate-limited.",
       detector_api: "Base URL",
+      detector_api_label: "API interface URL",
       detector_key: "API Key",
+      detector_key_label: "API Key",
       detector_path: "Path",
       detector_models_hint: "Substring model hits:",
       detector_go: "Run check",
@@ -172,8 +212,8 @@
       f_new: "New password",
       f_save: "Update",
       register_title: "Register",
-      matrix_h2: "Six model lines · your relays",
-      viz_title: "This check",
+      matrix_h2: "Relays in this library",
+      viz_title: "This check · 3 lines",
       viz_lat: "Last 12 one-off latencies (browser only)",
       login_h2: "Sign in",
       login_hint: "",
@@ -182,6 +222,40 @@
       f_submit: "Sign in",
       reg_h3: "Register",
       reg_btn: "Register",
+      rep_h1: "Probe report",
+      rep_h2: "Results",
+      btn_share: "Share report",
+      m_lat: "Latency (ms)",
+      m_tokps: "Tokens/s",
+      m_tin: "Input tokens",
+      m_tout: "Output tokens",
+      m_tcr: "Cache read",
+      m_tcw: "Cache write",
+      m_na: "N/A",
+      m_knote: "Only GET /v1/models; no chat token usage. Deep checks not run here.",
+      m_knote_en: "GET /v1/models only; no token usage.",
+      rep_rank_link: "Open full rankings",
+      rep_by: "Zhongce · OpenAI-compatible models list probe",
+      probe_banner_sub: "Probes do not store your key or chat content. Prefer a test-only key. We care about your privacy and security.",
+      probe_banner_sub_en: "Probes do not store your key or chat content. Prefer a test-only key.",
+      cost_h2: "Cost estimate",
+      cost_sec: "Price inputs",
+      cost_link_formula: "Formula",
+      cost_hint:
+        "Enter USD per million, multiplier, and your top-up. Estimates CNY per million output tokens. Same as the ¥/token page.",
+      cost_hint_en:
+        "Same as above. Numbers stay in your browser.",
+      cost_p_usd: "Official USD / M tokens",
+      cost_mult: "Provider multiplier",
+      cost_rmb: "Top-up CNY (¥)",
+      cost_credit: "Credit received from top-up",
+      cost_privacy: "Computed in-browser only; nothing is uploaded.",
+      cost_privacy_en: "In-browser only.",
+      cost_btn: "Calculate",
+      nav_presence_lbl: "Live",
+      nav_presence_tip: "Activity within ~2 min counts as online. In-process count (not merged across workers).",
+      ad_traffic_h2: "Daily page views (UTC)",
+      ad_traffic_p: "One count per successful HTML GET (excludes /api, /static). Each app instance has its own counter.",
     },
   };
 
@@ -192,6 +266,10 @@
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const k = el.getAttribute("data-i18n");
       if (k && t[k]) el.textContent = t[k];
+    });
+    document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+      const k = el.getAttribute("data-i18n-title");
+      if (k && t[k]) el.setAttribute("title", t[k]);
     });
     const sel = document.getElementById("lang");
     if (sel) sel.value = lang;
@@ -250,4 +328,59 @@
   }
   kumaAppStrip();
   setInterval(kumaAppStrip, 120000);
+
+  function newVisitorId() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return "v" + crypto.randomUUID().replace(/-/g, "");
+    }
+    return "v" + String(Date.now()) + "x" + String(Math.random()).slice(2, 12);
+  }
+
+  function initPresencePill() {
+    const nEl = document.getElementById("presence-count");
+    if (!nEl) return;
+    var key = "zhongce_vid";
+    var vid = null;
+    try {
+      vid = localStorage.getItem(key);
+    } catch (e) {
+      vid = null;
+    }
+    if (!vid || String(vid).length < 8) {
+      vid = newVisitorId();
+      try {
+        localStorage.setItem(key, vid);
+      } catch (e) {}
+    }
+    function setCount(n) {
+      if (n == null || n === "") nEl.textContent = "—";
+      else nEl.textContent = String(n);
+    }
+    function ping() {
+      fetch("/api/presence/heartbeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitor_id: vid }),
+        credentials: "same-origin",
+      })
+        .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+        .then(({ ok, j }) => {
+          if (ok && j.online != null) setCount(j.online);
+          else setCount(null);
+        })
+        .catch(function () {
+          setCount(null);
+        });
+    }
+    fetch("/api/presence", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.online != null) setCount(j.online);
+      })
+      .catch(function () {});
+    ping();
+    setInterval(ping, 30000);
+  }
+
+  initPresencePill();
 })();

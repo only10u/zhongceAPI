@@ -1,0 +1,12 @@
+# 复制到服务器后按需改域名，例如: sudo cp caddyfile.example /etc/caddy/Caddyfile
+# Caddy 会自动申请并续期 Let’s Encrypt 证书。确保 DNS 的 A/AAAA 已指向本机，且 80/443 可访问。
+
+# 将下方 zhongapice.com 换成你的主域名；若只用一个主机名，删掉另一行。
+zhongapice.com, www.zhongapice.com {
+    reverse_proxy 127.0.0.1:8765
+}
+
+# 若希望 www 统一 301 到主域，可拆成两个站点（主域用上一段；www 单写一段）:
+# www.zhongapice.com {
+#     redir https://zhongapice.com{uri} permanent
+# }

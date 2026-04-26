@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}管理{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+{% endblock %}
 {% block main %}
 <div class="admin-page">
   <section class="card magic-card admin-boot">
@@ -24,16 +27,40 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
     <p id="chpw-msg" class="msg"></p>
   </section>
 
-  <h2>管理员 · 中转 <span class="small">(ID / 名 / Base / 组)</span></h2>
-  <div class="table-wrap table-magic">
-    <table class="data-table data-table-lens">
-      <thead><tr><th>ID</th><th>名称</th><th>Base</th><th>组</th><th>价</th></tr></thead>
-    <tbody>
+  <section class="card magic-card" id="admin-traffic-block">
+    <h2 data-i18n="ad_traffic_h2">日访问量（PV，UTC）</h2>
+    <p class="small muted" data-i18n="ad_traffic_p">主站各可见页面「GET 成功」计一次；UTC 按天汇总。</p>
+    <div class="admin-chart-wrap" style="position: relative; height: 260px; max-width: 100%;">
+      <canvas id="admin-traffic-chart" aria-label="日 PV 折线"></canvas>
+    </div>
+  </section>
+
+  <h2>管理员 · 中转站（可手改全字段）</h2>
+  <p class="small muted i18n-zh">保存后即时写入数据库；<strong>API Key</strong> 仅在新填写时更新，留空则保留原值。亦可用 <code>X-Admin-Token</code> 调 <code>PATCH /api/relays/{id}</code>。</p>
+  <div class="admin-relay-list">
     {% for r in relay_rows %}
-      <tr><td>{{ r.id }}</td><td>{{ r.name }}</td><td class="url">{{ r.base_url }}</td><td>{{ r.group_name or "—" }}</td><td>{{ r.site_price or "—" }}</td></tr>
+    <article class="card magic-card admin-relay-card" data-relay-id="{{ r.id }}">
+      <h3 class="admin-relay-h3">#{{ r.id }} · {{ r.name }}</h3>
+      <form class="form f-relay-grid" autocomplete="off" data-relay-id="{{ r.id }}">
+        <label><span>名称</span> <input name="name" type="text" value="{{ r.name }}" required/></label>
+        <label class="span2"><span>Base URL</span> <input name="base_url" type="url" value="{{ r.base_url }}" required/></label>
+        <label><span>站点分组</span> <input name="group_name" type="text" value="{{ r.group_name or '' }}" placeholder="可选"/></label>
+        <label><span>价格</span> <input name="site_price" type="text" value="{{ r.site_price or '' }}" placeholder="如 9、12.5"/></label>
+        <label><span>掺水率文案</span> <input name="dilution_label" type="text" value="{{ r.dilution_label or '' }}" placeholder="如 几乎不（优先生效）" maxlength="64"/></label>
+        <label><span>掺水率 %</span> <input name="dilution_override" type="number" min="0" max="100" step="0.1" value="{{ r.dilution_override if r.dilution_override is not none else '' }}" placeholder="0–100，空=清除"/></label>
+        <label><span>排序权值</span> <input name="rank_boost" type="number" value="{{ r.rank_boost }}" min="0"/></label>
+        <label class="chkb"><input name="enabled" type="checkbox" value="1" {% if r.enabled %}checked{% endif %}/> <span>已启用</span></label>
+        <label class="span2"><span>探测路径</span> <input name="check_path" type="text" value="{{ r.check_path }}" placeholder="/v1/models"/></label>
+        <label class="span2"><span>API Key</span> <input name="api_key" type="password" autocomplete="new-password" placeholder="留空不修改" /></label>
+        <div class="span2 admin-relay-actions">
+          <button type="submit" class="btn primary">保存</button>
+          <span class="msg f-relay-msg" aria-live="polite"></span>
+        </div>
+      </form>
+    </article>
+    {% else %}
+    <p class="muted">暂无中转记录。</p>
     {% endfor %}
-    </tbody>
-  </table>
   </div>
   <h2>用户</h2>
   <div class="table-wrap table-magic">
@@ -57,11 +84,116 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
     </tbody>
   </table>
   </div>
-  <p class="meta">增删改中转请仍使用 <code>X-Admin-Token</code> 调 <code>/api/relays</code> 或 <a href="/docs">OpenAPI</a>。</p>
+  <p class="meta">新增或删除请使用 <code>X-Admin-Token</code>：<code>POST/DELETE /api/relays</code> 或 <a href="/docs">OpenAPI</a>。</p>
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
+  (function () {
+    var chartRef = null;
+    function goTraffic() {
+      if (typeof Chart === "undefined") {
+        setTimeout(goTraffic, 40);
+        return;
+      }
+      var canvas = document.getElementById("admin-traffic-chart");
+      if (!canvas) return;
+      fetch("/api/admin/traffic?days=30", { credentials: "same-origin" })
+        .then(function (r) {
+          if (!r.ok) throw new Error(String(r.status));
+          return r.json();
+        })
+        .then(function (j) {
+          var s = (j && j.series) || [];
+          var labels = s.map(function (x) {
+            return (x.day || "").slice(5);
+          });
+          var data = s.map(function (x) {
+            return x.page_views != null ? x.page_views : 0;
+          });
+          var isDark = document.getElementById("html-root") && document.getElementById("html-root").getAttribute("data-theme") === "dark";
+          var g = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+          var fg = isDark ? "#a1a1aa" : "#52525b";
+          if (chartRef) chartRef.destroy();
+          chartRef = new Chart(canvas, {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "PV",
+                  data: data,
+                  borderColor: "#7c3aed",
+                  backgroundColor: "rgba(124, 58, 237, 0.12)",
+                  fill: true,
+                  tension: 0.2,
+                  pointRadius: 2,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              plugins: {
+                legend: { display: true, labels: { color: fg } },
+                tooltip: { enabled: true },
+              },
+              scales: {
+                x: { grid: { color: g }, ticks: { color: fg, maxRotation: 45 } },
+                y: { beginAtZero: true, grid: { color: g }, ticks: { color: fg } },
+              },
+            },
+          });
+        })
+        .catch(function () {});
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", goTraffic);
+    } else goTraffic();
+  })();
+  document.querySelectorAll(".f-relay-grid").forEach((form) => {
+    const rid = form.getAttribute("data-relay-id");
+    const msg = form.querySelector(".f-relay-msg");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!msg) return;
+      msg.textContent = "…";
+      const fd = new FormData(form);
+      const body = {
+        name: (fd.get("name") || "").toString().trim(),
+        base_url: (fd.get("base_url") || "").toString().trim(),
+        group_name: (() => { const s = (fd.get("group_name") || "").toString().trim(); return s || null; })(),
+        site_price: (() => { const s = (fd.get("site_price") || "").toString().trim(); return s || null; })(),
+        dilution_label: (() => { const s = (fd.get("dilution_label") || "").toString().trim(); return s || null; })(),
+        rank_boost: parseInt((fd.get("rank_boost") || "0").toString(), 10) || 0,
+        enabled: form.querySelector("input[name=enabled]") && form.querySelector("input[name=enabled]").checked,
+        check_path: (fd.get("check_path") || "").toString().trim() || "/v1/models",
+      };
+      const dpn = (fd.get("dilution_override") || "").toString().trim();
+      if (dpn === "") body.dilution_override = null;
+      else { const n = parseFloat(dpn); if (!isNaN(n)) body.dilution_override = n; }
+      const ak = (fd.get("api_key") || "").toString();
+      if (ak.trim() !== "") body.api_key = ak.trim();
+      const r = await fetch("/api/admin/relays/" + rid, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        credentials: "same-origin",
+      });
+      if (r.ok) {
+        msg.textContent = "已保存";
+        if (form.querySelector("input[name=api_key]")) form.querySelector("input[name=api_key]").value = "";
+        return;
+      }
+      try {
+        const j = await r.json();
+        msg.textContent = j.detail || r.status;
+      } catch (ex) {
+        msg.textContent = await r.text();
+      }
+    });
+  });
   document.getElementById("f-chpw").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);

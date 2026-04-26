@@ -13,10 +13,51 @@ from relay_probe.models import ModelProbeSample, ProbeSample, Relay
 from relay_probe.ranking import build_ranking_rows
 
 settings = Settings()
+_UPTIME_SLOTS = 12
 
 
 def window_start_utc(hours: int) -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)
+
+
+def _format_dilution(r: Relay) -> str:
+    if r.dilution_label and r.dilution_label.strip():
+        return r.dilution_label.strip()
+    if r.dilution_override is not None:
+        return f"{r.dilution_override:.0f}%"
+    return "—"
+
+
+def _uptime_block_keys(
+    db: Session,
+    relay_id: int,
+    model_slug: str,
+    since: dt.datetime,
+    online_rate: float,
+    samples: int,
+) -> list[str]:
+    q = (
+        db.query(ModelProbeSample)
+        .filter(
+            ModelProbeSample.relay_id == relay_id,
+            ModelProbeSample.model_slug == model_slug,
+            ModelProbeSample.created_at >= since,
+        )
+        .order_by(ModelProbeSample.created_at.desc())
+        .limit(_UPTIME_SLOTS)
+        .all()
+    )
+    chrono: list[ModelProbeSample] = list(reversed(q))
+    out: list[str] = [
+        "ok" if s.present else "miss" for s in chrono
+    ]
+    if len(out) < _UPTIME_SLOTS:
+        out = out + ["pad"] * (_UPTIME_SLOTS - len(out))
+    if chrono or samples:
+        return out
+    orate = max(0.0, min(1.0, float(online_rate or 0.0)))
+    ng = int(round(orate * _UPTIME_SLOTS))
+    return ["ok" if i < ng else "miss" for i in range(_UPTIME_SLOTS)]
 
 
 def build_per_model_table(
@@ -99,9 +140,10 @@ def build_per_model_table(
         else:
             run_st = "无数据"
             st_cls = "st-muted"
-        dilution = "—"
-        if r.dilution_override is not None:
-            dilution = f"{r.dilution_override:.0f}%"
+        dilution = _format_dilution(r)
+        ukeys = _uptime_block_keys(
+            db, r.id, model_slug, since, st["online_rate"], st["samples"]
+        )
         out.append(
             {
                 "relay_id": r.id,
@@ -116,6 +158,7 @@ def build_per_model_table(
                 "avg_latency_ms": st["avg_latency_ms"],
                 "status": run_st,
                 "status_class": st_cls,
+                "uptime_block_keys": ukeys,
             }
         )
     # 排序：在线率降序、延迟升

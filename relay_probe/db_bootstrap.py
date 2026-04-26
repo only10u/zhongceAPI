@@ -1,7 +1,10 @@
 """首启时创建默认管理员、导入 JSON 种子（可选）。"""
+from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path
+from typing import Optional
 
 from relay_probe.config import Settings
 from relay_probe.database import SessionLocal
@@ -65,6 +68,14 @@ def import_seed_sites_from_json() -> int:
             )
             if exists:
                 continue
+            dlab = item.get("dilution_label")
+            dovr = item.get("dilution_override")
+            dflt: Optional[float] = None
+            if dovr is not None and str(dovr).strip() != "":
+                try:
+                    dflt = float(dovr)
+                except (TypeError, ValueError):
+                    dflt = None
             r = Relay(
                 name=name,
                 base_url=bu.rstrip("/"),
@@ -73,6 +84,8 @@ def import_seed_sites_from_json() -> int:
                 enabled=bool(item.get("enabled", True)),
                 group_name=(item.get("group") or None),
                 site_price=(item.get("price") or None),
+                dilution_label=(str(dlab).strip() if dlab else None),
+                dilution_override=dflt,
             )
             db.add(r)
             n += 1

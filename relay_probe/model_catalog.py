@@ -28,36 +28,8 @@ TRACKED_MODELS: list[dict[str, Any]] = [
         "badge": "",
         "match": ("sonnet-4-6", "claude-sonnet-4-6", "claude-sonnet-4"),
     },
-    {
-        "slug": "gpt-5-5",
-        "name_zh": "GPT 5.5",
-        "name_en": "GPT 5.5",
-        "card_id": "gpt-5.5",
-        "badge": "new",
-        "match": ("gpt-5.5", "gpt-5-5", "gpt-5-5-2025", "5.5-2025"),
-    },
-    {
-        "slug": "gpt-5-4",
-        "name_zh": "GPT 5.4",
-        "name_en": "GPT 5.4",
-        "card_id": "gpt-5.4",
-        "badge": "",
-        "match": ("gpt-5.4", "gpt-5-4", "5.4-2025"),
-    },
-    {
-        "slug": "gemini-3-1",
-        "name_zh": "Gemini 3.1 Pro",
-        "name_en": "Gemini 3.1 Pro",
-        "card_id": "gemini-3.1-pro-preview",
-        "badge": "",
-        "match": (
-            "gemini-3.1-pro",
-            "gemini-3.1",
-            "3.1-pro",
-            "gemini-3-pro",
-        ),
-    },
 ]
+# 全站排行 / 首页 / 在线检测目标线仅以上三条（与禾维多线对齐全站运营时可再扩展）
 
 
 def model_ids_from_models_response(body: str) -> str:

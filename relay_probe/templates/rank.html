@@ -4,7 +4,7 @@
 <div
   class="rank-page"
   id="rank-page-root"
-  data-window-hours="{{ window_hours }}"
+  data-bundles="1"
   data-poll-sec="8"
 >
   <div class="rank-live-ribbon" id="rank-refresh-hint" aria-live="polite">
@@ -16,96 +16,120 @@
 
   <div class="rank-hero card-spotlight">
     <h1 class="h1-magic h1-rank gradient-text" data-i18n="rank_h1">中转站排行</h1>
-    <p class="rank-sub i18n-zh">多模型分榜、指标可对照。统计窗口 <strong>{{ window_hours }}</strong> 小时 · 中测 v{{ version }}。下方数据每 <strong>8</strong> 秒自动与全站库对齐刷新。</p>
-    <p class="rank-sub i18n-en">Per-model leaderboards. Window: <strong>{{ window_hours }}</strong>h · v{{ version }} · table auto-refreshes every <strong>8</strong>s.</p>
+    <p class="rank-sub i18n-zh">多模型分榜、指标可对照。分<strong>日榜</strong>（近 24 小时）、<strong>周榜</strong>（近 168 小时）、<strong>月榜</strong>（近 720 小时）三套；每套仅含 <strong>Opus 4.7、Opus 4.6、Sonnet 4.6</strong> 三条分表与 1 份总榜。中测 v{{ version }}。下方每 <strong>8</strong> 秒与全站库对齐刷新。</p>
+    <p class="rank-sub i18n-en">Leaderboards: <strong>24h</strong>, <strong>7d (168h)</strong>, and <strong>30d (720h)</strong> — each with <strong>three</strong> model tables (Opus 4.7/4.6, Sonnet 4.6) plus one aggregate. v{{ version }} · every <strong>8</strong>s.</p>
   </div>
 
   <div class="rank-toolbar">
-    <p class="meta tool-meta" data-i18n="rank_note">「在线率」为窗口内在 /v1/models 列表中能否匹配到对应模型代号的探测比例；「掺水率」需对话级质检，无数据时显示 —；运行状态为最近一次在窗口内探测结论。</p>
+    <p class="meta tool-meta" data-i18n="rank_note">「在线率」为窗口内 <code>GET /v1/models</code> 中目标模型子串的命中比例。掺水率可在后台填文案或百分比；行末 12 格为近期探测/在线率合成示意。</p>
   </div>
 
-  <nav class="rank-model-tabs" id="rank-model-tabs" aria-label="模型分榜">
-    {% for m in dashboard.models_meta %}
-    <button type="button" class="rank-tab {% if loop.first %}is-active{% endif %}" data-slug="{{ m.slug }}">{{ m.name_zh }}</button>
-    {% endfor %}
-    <a href="#rank-legacy" class="rank-tab rank-tab-link" data-i18n="tab_legacy">总榜</a>
-  </nav>
+  {% for period in rank_periods %}
+  <section class="period-rank" id="period-{{ period.key }}" data-period-key="{{ period.key }}">
+    <h2 class="h2-magic h2-period">
+      <span class="period-label-zh">{{ period.label_zh }}</span>
+      <span class="name-en muted period-meta">({{ period.hours }}h · {{ period.label_en }})</span>
+    </h2>
+    <nav
+      class="rank-model-tabs"
+      data-period="{{ period.key }}"
+      aria-label="{{ period.label_zh }} 模型分榜"
+    >
+      {% for m in period.dashboard.models_meta %}
+      <button
+        type="button"
+        class="rank-tab {% if loop.first %}is-active{% endif %}"
+        data-slug="{{ m.slug }}"
+      >{{ m.name_zh }}</button>
+      {% endfor %}
+      <a href="#rank-legacy-{{ period.key }}" class="rank-tab rank-tab-link" data-i18n="tab_legacy">总榜</a>
+    </nav>
 
-  {% for m in dashboard.models_meta %}
-  {% set slug = m.slug %}
-  {% set rows = dashboard.by_model[slug] %}
-  <section class="model-block tabbed {% if not loop.first %}model-block--hidden{% endif %}" id="m-{{ slug }}" data-slug="{{ slug }}">
-    <div class="model-block-head">
-      <h2 class="model-title">
-        <span class="name-zh model-name-gradient">{{ m.name_zh }}</span>
-        <span class="name-en muted">/ {{ m.name_en }}</span>
-      </h2>
-      <span class="model-badge" data-i18n="rank_recommend">推荐</span>
-    </div>
+    {% for m in period.dashboard.models_meta %}
+    {% set slug = m.slug %}
+    {% set rows = period.dashboard.by_model[slug] %}
+    <section
+      class="model-block tabbed {% if not loop.first %}model-block--hidden{% endif %}"
+      id="m-{{ period.key }}-{{ slug }}"
+      data-slug="{{ slug }}"
+    >
+      <div class="model-block-head">
+        <h2 class="model-title">
+          <span class="name-zh model-name-gradient">{{ m.name_zh }}</span>
+          <span class="name-en muted">/ {{ m.name_en }}</span>
+        </h2>
+        <span class="model-badge" data-i18n="rank_recommend">推荐</span>
+      </div>
+      <div class="table-wrap table-magic">
+        <table class="data-table data-table-lens">
+          <thead>
+            <tr>
+              <th class="th-rank" data-i18n="col_rank">排名</th>
+              <th data-i18n="col_site">站点</th>
+              <th data-i18n="col_group">站点分组</th>
+              <th data-i18n="col_price">价格</th>
+              <th class="th-metric" data-i18n="col_online">在线率</th>
+              <th class="th-metric" data-i18n="col_dilu">掺水率</th>
+              <th class="th-metric" data-i18n="col_lat">延迟</th>
+              <th class="th-uptime" data-i18n="col_run">运行状态</th>
+            </tr>
+          </thead>
+          <tbody id="tb-{{ period.key }}-model-{{ slug }}">
+          {% for row in rows %}
+            <tr>
+              <td class="td-rank"><span class="rank-pill">#{{ row.rank }}</span></td>
+              <td class="td-name"><a class="site-link" href="{{ row.base_url }}" target="_blank" rel="noopener noreferrer">{{ row.name }}</a></td>
+              <td>{{ row.group }}</td>
+              <td class="td-price">{{ row.price }}</td>
+              <td class="td-metric">{% if row.samples %}{{ row.online_rate_pct }}%{% else %}—{% endif %}</td>
+              <td class="td-metric td-dilu">{{ row.dilution }}</td>
+              <td class="td-metric td-lat">{% if row.avg_latency_ms is not none %}{{ row.avg_latency_ms }}{% else %}—{% endif %}</td>
+              <td class="td-uptime">
+                <div class="uptime-grid" role="img" aria-label="{{ row.status }}{% if row.samples %} · 在线率 {{ row.online_rate_pct }}%{% endif %}" title="{{ row.status }}{% if row.samples %} · {{ row.online_rate_pct }}%{% endif %}">
+                  {% for k in row.uptime_block_keys %}
+                  <span class="uptime-sq sq-{{ k }}"></span>
+                  {% endfor %}
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="8" class="muted">暂无数据，请先通过 API 或 seed_sites 添加中转并完成探测</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endfor %}
+
+    <h2 class="h2-legacy" id="rank-legacy-{{ period.key }}" data-i18n="rank_legacy_h">总榜（/v1/models 全通道）</h2>
+    <p class="note i18n-zh">不区分模型线号，按整站 <code>GET /v1/models</code> 请求的成功与延迟；适合观察网关整体健康。</p>
+    <p class="note i18n-en">Aggregate health across the whole models endpoint (no per-model split).</p>
     <div class="table-wrap table-magic">
       <table class="data-table data-table-lens">
         <thead>
           <tr>
             <th class="th-rank" data-i18n="col_rank">排名</th>
-            <th data-i18n="col_site">站点</th>
-            <th data-i18n="col_group">站点分组</th>
-            <th data-i18n="col_price">价格</th>
-            <th class="th-metric" data-i18n="col_online">在线率</th>
-            <th class="th-metric" data-i18n="col_dilu">掺水率</th>
-            <th class="th-metric" data-i18n="col_lat">延迟</th>
-            <th data-i18n="col_run">运行状态</th>
+            <th data-i18n="col_site2">名称</th>
+            <th data-i18n="col_window_ok">窗口成功率</th>
+            <th data-i18n="col_avg_lat">均延迟 (ms)</th>
             <th>Base</th>
           </tr>
         </thead>
-        <tbody id="tb-model-{{ slug }}">
-        {% for row in rows %}
+        <tbody id="tb-legacy-{{ period.key }}">
+        {% for x in period.legacy_rows %}
           <tr>
-            <td class="td-rank"><span class="rank-pill">#{{ row.rank }}</span></td>
-            <td class="td-name"><a class="site-link" href="{{ row.base_url }}" target="_blank" rel="noopener noreferrer">{{ row.name }}</a></td>
-            <td>{{ row.group }}</td>
-            <td class="td-price">{{ row.price }}</td>
-            <td class="td-metric">{% if row.samples %}{{ row.online_rate_pct }}%{% else %}—{% endif %}</td>
-            <td class="td-metric td-dilu">{{ row.dilution }}</td>
-            <td class="td-metric td-lat">{% if row.avg_latency_ms is not none %}{{ row.avg_latency_ms }}{% else %}—{% endif %}</td>
-            <td><span class="run-badge {{ row.status_class }}">{{ row.status }}</span></td>
-            <td class="url"><a class="site-link" href="{{ row.base_url }}" target="_blank" rel="noopener noreferrer"><small>{{ row.base_url }}</small></a></td>
+            <td class="td-rank"><span class="rank-pill">#{{ x.rank }}</span></td>
+            <td class="td-name"><a class="site-link" href="{{ x.base_url }}" target="_blank" rel="noopener noreferrer">{{ x.name }}</a></td>
+            <td class="td-metric">{% if x.samples_in_window %}{{ (x.success_rate * 100)|round(1) }}%{% else %}—{% endif %}</td>
+            <td class="td-metric td-lat">{% if x.avg_latency_ms is not none %}{{ x.avg_latency_ms }}{% else %}—{% endif %}</td>
+            <td class="url"><a class="site-link" href="{{ x.base_url }}" target="_blank" rel="noopener noreferrer"><small>{{ x.base_url }}</small></a></td>
           </tr>
-        {% else %}
-          <tr><td colspan="9" class="muted">暂无数据，请先通过 API 或 seed_sites 添加中转并完成探测</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </section>
   {% endfor %}
-
-  <h2 class="h2-legacy" id="rank-legacy" data-i18n="rank_legacy_h">总榜（/v1/models 全通道）</h2>
-  <p class="note i18n-zh">不区分模型线号，按整站 <code>GET /v1/models</code> 请求的成功与延迟；适合观察网关整体健康。</p>
-  <p class="note i18n-en">Aggregate health across the whole models endpoint (no per-model split).</p>
-  <div class="table-wrap table-magic">
-    <table class="data-table data-table-lens">
-      <thead>
-        <tr>
-          <th class="th-rank" data-i18n="col_rank">排名</th>
-          <th data-i18n="col_site2">名称</th>
-          <th data-i18n="col_window_ok">窗口成功率</th>
-          <th data-i18n="col_avg_lat">均延迟 (ms)</th>
-          <th>Base</th>
-        </tr>
-      </thead>
-      <tbody id="tb-legacy">
-      {% for x in legacy_rows %}
-        <tr>
-          <td class="td-rank"><span class="rank-pill">#{{ x.rank }}</span></td>
-          <td class="td-name"><a class="site-link" href="{{ x.base_url }}" target="_blank" rel="noopener noreferrer">{{ x.name }}</a></td>
-          <td class="td-metric">{% if x.samples_in_window %}{{ (x.success_rate * 100)|round(1) }}%{% else %}—{% endif %}</td>
-          <td class="td-metric td-lat">{% if x.avg_latency_ms is not none %}{{ x.avg_latency_ms }}{% else %}—{% endif %}</td>
-          <td class="url"><a class="site-link" href="{{ x.base_url }}" target="_blank" rel="noopener noreferrer"><small>{{ x.base_url }}</small></a></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
 
   <section class="inclusion-rank" id="inclusion">
     <h2 class="h2-magic" data-i18n="inc_h2">中转站收录</h2>

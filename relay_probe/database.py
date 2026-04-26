@@ -37,6 +37,7 @@ def _ensure_relay_columns() -> None:
         ("group_name", "ALTER TABLE relays ADD COLUMN group_name VARCHAR(64)"),
         ("site_price", "ALTER TABLE relays ADD COLUMN site_price VARCHAR(64)"),
         ("dilution_override", "ALTER TABLE relays ADD COLUMN dilution_override FLOAT"),
+        ("dilution_label", "ALTER TABLE relays ADD COLUMN dilution_label VARCHAR(64)"),
     ]
     with engine.begin() as conn:
         r = conn.execute(text("PRAGMA table_info(relays)"))

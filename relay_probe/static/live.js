@@ -3,16 +3,10 @@
  * 排行页：轮询 dashboard
  */
 (function () {
-  const MODEL_SLUGS = [
-    "opus-47",
-    "opus-46",
-    "sonnet-46",
-    "gpt-5-5",
-    "gpt-5-4",
-    "gemini-3-1",
-  ];
+  const MODEL_SLUGS = ["opus-47", "opus-46", "sonnet-46"];
   const LS_LAT = "zhongce_probe_lat_v1";
   const chartState = { bar: null, doughnut: null, line: null };
+  var lastProbeSnapshot = null;
 
   function setText(id, t) {
     const el = document.getElementById(id);
@@ -72,7 +66,7 @@
           th.textContent = "";
           tb.textContent = "";
           const htr = el("tr");
-          htr.appendChild(el("th", "th-site", "站点"));
+          htr.appendChild(el("th", "th-site", "名称"));
           (d.models_meta || []).forEach(function (m) {
             var short = m.name_zh || m.slug;
             if (short.length > 7) short = short.slice(0, 6) + "…";
@@ -252,7 +246,7 @@
       },
     });
     const hits = svc.model_hits != null ? svc.model_hits : 0;
-    const tot = svc.model_tracked != null ? svc.model_tracked : 6;
+    const tot = svc.model_tracked != null ? svc.model_tracked : 3;
     chartState.doughnut = new Chart(elD, {
       type: "doughnut",
       data: {
@@ -289,15 +283,121 @@
     });
   }
 
+  function isZhRoot() {
+    const r = document.getElementById("html-root");
+    return (r && r.getAttribute("lang") || "").toLowerCase().startsWith("zh");
+  }
+
+  function metricNaLabel() {
+    return isZhRoot() ? "不适用" : "N/A";
+  }
+
+  function renderHomeProbeReport(j) {
+    const dump = document.getElementById("probe-report-dump");
+    if (!dump) return;
+    dump.hidden = false;
+    const ru = j.report_ui || {};
+    const p = Math.max(0, Math.min(100, parseInt(String(ru.score_percent), 10) || 0));
+    const ring = document.getElementById("home-score-ring");
+    if (ring) ring.style.setProperty("--p", String(p));
+    setText("home-score-pct", p + "%");
+    setText("home-score-hl-zh", ru.headline_zh || "—");
+    const hel = document.getElementById("home-score-hl-en");
+    if (hel) hel.textContent = ru.headline_en || "—";
+    setText("m-v-lat", j.latency_ms != null ? String(j.latency_ms) : "—");
+    const na = metricNaLabel();
+    document.querySelectorAll("#home-metricbar .pm-tok-na").forEach((el) => {
+      el.textContent = na;
+    });
+    const cl = document.getElementById("home-probe-checklist");
+    if (cl) {
+      cl.textContent = "";
+      (ru.checklist || []).forEach(function (row) {
+        const li = el("li", "ck ck-" + (row.state || "skip"));
+        var ico = "—";
+        if (row.state === "pass") ico = "✓";
+        else if (row.state === "warn") ico = "△";
+        else if (row.state === "fail") ico = "✗";
+        li.appendChild(el("span", "ck-ico", ico));
+        const tw = el("div", "ck-twrap");
+        tw.appendChild(el("span", "ck-t i18n-zh", row.text_zh || ""));
+        tw.appendChild(el("span", "ck-t i18n-en", row.text_en || ""));
+        li.appendChild(tw);
+        cl.appendChild(li);
+      });
+    }
+    lastProbeSnapshot = j;
+  }
+
+  function initProbeShare() {
+    const b = document.getElementById("btn-probe-share");
+    if (!b || b.getAttribute("data-wired") === "1") return;
+    b.setAttribute("data-wired", "1");
+    b.addEventListener("click", function () {
+      const toast = document.getElementById("probe-share-toast");
+      if (!lastProbeSnapshot) {
+        if (toast) {
+          toast.textContent = isZhRoot() ? "请先完成一次检测" : "Run a probe first";
+          toast.hidden = false;
+        }
+        return;
+      }
+      if (toast) toast.hidden = true;
+      fetch("/api/probe-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ version: 1, data: lastProbeSnapshot }),
+        credentials: "same-origin",
+      })
+        .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+        .then(function ({ ok, j }) {
+          if (ok && j.url) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(j.url);
+            } else {
+              const ta = document.createElement("textarea");
+              ta.value = j.url;
+              document.body.appendChild(ta);
+              ta.select();
+              try {
+                document.execCommand("copy");
+              } catch (ex) {}
+              document.body.removeChild(ta);
+            }
+            if (toast) {
+              toast.textContent = (isZhRoot() ? "已复制报告链接： " : "Copied: ") + j.url;
+              toast.hidden = false;
+            }
+          } else if (toast) {
+            toast.textContent = (j && j.detail) || String(j) || "error";
+            toast.hidden = false;
+          }
+        })
+        .catch(function (e) {
+          if (toast) {
+            toast.textContent = String(e);
+            toast.hidden = false;
+          }
+        });
+    });
+  }
+
   // —— 首页：试探测
   function initHomeProbe() {
     const f = document.getElementById("form-try-probe");
     const out = document.getElementById("probe-result");
+    const dump = document.getElementById("probe-report-dump");
     const pill = document.getElementById("probe-kuma-pill");
     const pv = document.getElementById("probe-viz");
     if (!f || !out) return;
     f.addEventListener("submit", (e) => {
       e.preventDefault();
+      if (dump) dump.hidden = true;
+      const tst = document.getElementById("probe-share-toast");
+      if (tst) {
+        tst.hidden = true;
+        tst.textContent = "";
+      }
       out.hidden = false;
       if (pv) pv.hidden = true;
       if (pill) pill.hidden = true;
@@ -309,9 +409,12 @@
         .then(({ ok, j }) => {
           out.className = "probe-result";
           if (!ok) {
+            if (dump) dump.hidden = true;
             out.textContent = j.detail || JSON.stringify(j);
             return;
           }
+          out.hidden = true;
+          out.textContent = "";
           const svc = j.service_status || {};
           if (pill) {
             pill.hidden = false;
@@ -320,46 +423,11 @@
             var line = "状态 " + (svc.status || "—");
             if (j.http_status != null) line += " · HTTP " + j.http_status;
             if (j.latency_ms != null) line += " · " + j.latency_ms + " ms";
-            if (svc.model_hits != null) line += " · 六线 " + svc.model_hits + "/" + (svc.model_tracked || 6);
+            if (svc.model_hits != null) line += " · 三线 " + svc.model_hits + "/" + (svc.model_tracked || 3);
             setText("probe-svc-line", line);
             pill.className = "probe-kuma-pill kuma-" + (svc.status || "down");
           }
-          const ms = j.model_matches || {};
-          const parts = [];
-          parts.push("HTTP " + (j.http_status != null ? j.http_status : "—"));
-          parts.push("延迟 " + (j.latency_ms != null ? j.latency_ms + " ms" : "—"));
-          const labels = {
-            "opus-47": "Opus 4.7",
-            "opus-46": "Opus 4.6",
-            "sonnet-46": "Sonnet 4.6",
-            "gpt-5-5": "GPT 5.5",
-            "gpt-5-4": "GPT 5.4",
-            "gemini-3-1": "Gemini 3.1 Pro",
-          };
-          const chips = Object.keys(labels)
-            .map((slug) => {
-              const hit = ms[slug] ? "hit" : "miss";
-              return (
-                '<span class="probe-chip ' +
-                hit +
-                '"><span class="n">' +
-                labels[slug] +
-                "</span> " +
-                (ms[slug] ? "✓" : "×") +
-                "</span>"
-              );
-            })
-            .join(" ");
-          out.innerHTML =
-            "<p><strong>结果</strong>：" +
-            (j.ok ? "请求已返回" : "请求未成功") +
-            " · " +
-            parts.join(" · ") +
-            "</p>" +
-            (j.error ? "<p class=\"err\">" + j.error + "</p>" : "") +
-            "<div class=\"probe-chips\">" +
-            chips +
-            "</div>";
+          renderHomeProbeReport(j);
           if (pv) {
             pv.hidden = false;
             requestAnimationFrame(function () {
@@ -368,6 +436,8 @@
           }
         })
         .catch((err) => {
+          if (dump) dump.hidden = true;
+          out.hidden = false;
           out.className = "probe-result err";
           out.textContent = String(err);
         });
@@ -381,7 +451,7 @@
       tr.appendChild(
         (function () {
           const td = el("td", "muted", "暂无数据");
-          td.colSpan = 9;
+          td.colSpan = 8;
           return td;
         })()
       );
@@ -421,19 +491,18 @@
       tr.appendChild(el("td", "td-metric td-dilu", String(row.dilution || "—")));
       const lat = row.avg_latency_ms != null ? String(row.avg_latency_ms) : "—";
       tr.appendChild(el("td", "td-metric td-lat", lat));
-      const tdSt = el("td");
-      const b = el("span", "run-badge " + (row.status_class || "st-muted"), row.status);
-      tdSt.appendChild(b);
-      tr.appendChild(tdSt);
-      const tdU = el("td", "url");
-      const bu = document.createElement("a");
-      bu.className = "site-link";
-      bu.href = row.base_url;
-      bu.target = "_blank";
-      bu.rel = "noopener noreferrer";
-      const sm = el("small", null, row.base_url);
-      bu.appendChild(sm);
-      tdU.appendChild(bu);
+      const tdU = el("td", "td-uptime");
+      const g = el("div", "uptime-grid");
+      g.setAttribute("role", "img");
+      const tip = (row.status || "—") + (row.samples && row.online_rate_pct != null ? " · " + row.online_rate_pct + "%" : "");
+      g.setAttribute("title", tip);
+      g.setAttribute("aria-label", tip);
+      const keys = row.uptime_block_keys || [];
+      for (var i = 0; i < 12; i++) {
+        const k = keys[i] || "pad";
+        g.appendChild(el("span", "uptime-sq sq-" + k));
+      }
+      tdU.appendChild(g);
       tr.appendChild(tdU);
       tbody.appendChild(tr);
     });
@@ -484,26 +553,34 @@
     });
   }
 
+  const RANK_BUNDLE_KEYS = ["day", "week", "month"];
+
   function initRankPoll() {
     const root = document.getElementById("rank-page-root");
     if (!root) return;
-    const w = root.getAttribute("data-window-hours") || "24";
+    if (!root.getAttribute("data-bundles")) {
+      return;
+    }
     const sec = parseInt(root.getAttribute("data-poll-sec") || "8", 10) * 1000;
     const poll = () => {
-      fetch("/api/dashboard?window_hours=" + encodeURIComponent(w))
+      fetch("/api/rank-bundles")
         .then((r) => r.json())
         .then((d) => {
           setText("rank-stat-updated", fmtTime(d.updated_at));
-          const meta = d.models_meta;
-          (meta && meta.length ? meta : MODEL_SLUGS.map((s) => ({ slug: s }))).forEach(
-            (m) => {
-              const slug = m.slug;
-              const tb = document.getElementById("tb-model-" + slug);
-              if (tb) renderModelRows(tb, d.by_model && d.by_model[slug]);
-            }
-          );
-          const tbleg = document.getElementById("tb-legacy");
-          if (tbleg) renderLegacyRows(tbleg, d.legacy);
+          RANK_BUNDLE_KEYS.forEach((pk) => {
+            const b = d[pk];
+            if (!b) return;
+            const meta = b.models_meta;
+            (meta && meta.length
+              ? meta
+              : MODEL_SLUGS.map((s) => ({ slug: s }))
+            ).forEach((m) => {
+              const tb = document.getElementById("tb-" + pk + "-model-" + m.slug);
+              if (tb) renderModelRows(tb, b.by_model && b.by_model[m.slug]);
+            });
+            const tbleg = document.getElementById("tb-legacy-" + pk);
+            if (tbleg) renderLegacyRows(tbleg, b.legacy);
+          });
         })
         .catch(() => {});
     };
@@ -567,37 +644,156 @@
     updateHint();
   }
 
-  function initRankTabs() {
-    const nav = document.getElementById("rank-model-tabs");
-    if (!nav) return;
-    nav.addEventListener("click", function (e) {
-      var btn = e.target && e.target.closest && e.target.closest(".rank-tab[data-slug]");
-      if (!btn) return;
-      e.preventDefault();
-      var slug = btn.getAttribute("data-slug");
-      nav.querySelectorAll(".rank-tab").forEach(function (b) {
-        b.classList.remove("is-active");
-      });
-      btn.classList.add("is-active");
-      document.querySelectorAll(".model-block.tabbed").forEach(function (sec) {
-        sec.classList.toggle("model-block--hidden", sec.getAttribute("data-slug") !== slug);
-      });
+  function _applyRankHash() {
+    var h = (location.hash || "").replace(/^#/, "");
+    if (h && /^m-/.test(h) && !/^m-(day|week|month)-/.test(h)) {
+      h = "m-day-" + h.slice(2);
       try {
-        history.replaceState(null, "", "#m-" + slug);
+        history.replaceState(null, "", "#" + h);
       } catch (ex) {}
-    });
-    var h0 = (location.hash || "").replace("#", "");
-    if (h0.indexOf("m-") === 0) {
-      var sl = h0.slice(2);
-      var b0 = nav.querySelector('.rank-tab[data-slug="' + sl + '"]');
-      if (b0) b0.click();
     }
+    var m = h.match(/^m-(day|week|month)-(.+)$/);
+    if (!m) return;
+    var period = m[1];
+    var slug = m[2];
+    var nav = document.querySelector(
+      '.rank-model-tabs[data-period="' + period + '"]'
+    );
+    if (!nav) return;
+    var btn = nav.querySelector('.rank-tab[data-slug="' + slug + '"]');
+    if (!btn) return;
+    nav.querySelectorAll(".rank-tab").forEach(function (b) {
+      b.classList.remove("is-active");
+    });
+    btn.classList.add("is-active");
+    var p = document.getElementById("period-" + period);
+    if (p) {
+      p.querySelectorAll(".model-block.tabbed").forEach(function (sec) {
+        sec.classList.toggle(
+          "model-block--hidden",
+          sec.getAttribute("data-slug") !== slug
+        );
+      });
+    }
+  }
+
+  function initRankTabs() {
+    document.querySelectorAll(".rank-model-tabs[data-period]").forEach(function (nav) {
+      nav.addEventListener("click", function (e) {
+        var btn = e.target && e.target.closest && e.target.closest(".rank-tab[data-slug]");
+        if (!btn) return;
+        e.preventDefault();
+        var slug = btn.getAttribute("data-slug");
+        var period = nav.getAttribute("data-period");
+        if (!period) return;
+        nav.querySelectorAll(".rank-tab").forEach(function (b) {
+          b.classList.remove("is-active");
+        });
+        btn.classList.add("is-active");
+        var p = document.getElementById("period-" + period);
+        if (p) {
+          p.querySelectorAll(".model-block.tabbed").forEach(function (sec) {
+            sec.classList.toggle(
+              "model-block--hidden",
+              sec.getAttribute("data-slug") !== slug
+            );
+          });
+        }
+        try {
+          history.replaceState(null, "", "#m-" + period + "-" + slug);
+        } catch (ex) {}
+      });
+    });
+    _applyRankHash();
+    window.addEventListener("hashchange", _applyRankHash);
+  }
+
+  function fmtCost(n) {
+    if (n == null || !isFinite(n)) return "—";
+    if (Math.abs(n) >= 100) return n.toFixed(2);
+    if (Math.abs(n) >= 1) return n.toFixed(3);
+    return n.toFixed(4);
+  }
+
+  function doHomeCostCalc() {
+    var pUsd = parseFloat(
+      (document.getElementById("home-cost-p-usd") || {}).value
+    );
+    var mult = parseFloat((document.getElementById("home-cost-mult") || {}).value);
+    var rmb = parseFloat((document.getElementById("home-cost-rmb") || {}).value);
+    var credit = parseFloat(
+      (document.getElementById("home-cost-credit") || {}).value
+    );
+    function setz(id, t) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = t;
+    }
+    if (!(rmb > 0) || !(credit > 0)) {
+      setz("home-cost-v-purchase-zh", "—");
+      setz("home-cost-v-purchase-en", "—");
+      setz("home-cost-v-consume-zh", "—");
+      setz("home-cost-v-consume-en", "—");
+      setz("home-cost-v-final-zh", "—");
+      setz("home-cost-v-final-en", "—");
+      return;
+    }
+    var purchasePerYuan = credit / rmb;
+    setz(
+      "home-cost-v-purchase-zh",
+      fmtCost(purchasePerYuan) + " 额度/元"
+    );
+    setz(
+      "home-cost-v-purchase-en",
+      fmtCost(purchasePerYuan) + " credits / CNY"
+    );
+    if (!(pUsd >= 0) || !(mult >= 0)) {
+      setz("home-cost-v-consume-zh", "—");
+      setz("home-cost-v-consume-en", "—");
+      setz("home-cost-v-final-zh", "—");
+      setz("home-cost-v-final-en", "—");
+      return;
+    }
+    var consumePerM = pUsd * mult;
+    setz(
+      "home-cost-v-consume-zh",
+      fmtCost(consumePerM) + "（官方标价×倍率 同口径）"
+    );
+    setz(
+      "home-cost-v-consume-en",
+      fmtCost(consumePerM) + " (USD/M × mult)"
+    );
+    var finalYuan = consumePerM / purchasePerYuan;
+    setz("home-cost-v-final-zh", fmtCost(finalYuan));
+    setz("home-cost-v-final-en", fmtCost(finalYuan));
+  }
+
+  function initHomeCostCalc() {
+    var btn = document.getElementById("home-cost-btn");
+    if (!btn) return;
+    ["home-cost-p-usd", "home-cost-mult", "home-cost-rmb", "home-cost-credit"].forEach(
+      function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("change", doHomeCostCalc);
+        el.addEventListener("input", doHomeCostCalc);
+      }
+    );
+    btn.addEventListener("click", doHomeCostCalc);
+    var lang = document.getElementById("lang");
+    if (lang) {
+      lang.addEventListener("change", function () {
+        doHomeCostCalc();
+      });
+    }
+    doHomeCostCalc();
   }
 
   function go() {
     initHomeBroadcast();
     initHvoyCards();
     initHomeProbe();
+    initProbeShare();
+    initHomeCostCalc();
     initMatrix();
     initRankTabs();
     initRankPoll();

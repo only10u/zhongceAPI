@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, Response
+from starlette.requests import Request
 from sqlalchemy.orm import Session
 
 from relay_probe import __version__
@@ -15,6 +16,7 @@ from relay_probe.models import ProbeSample, Relay
 from relay_probe.probesample_helper import add_model_samples_from_probe
 from relay_probe.probe import ProbeResult, result_to_dict, run_probe
 from relay_probe.ranking import build_ranking_rows, delete_old_samples
+from relay_probe.relay_apply import apply_relay_update
 from relay_probe.schemas import Message, RelayCreate, RelayUpdate
 
 logging.basicConfig(
@@ -152,12 +154,64 @@ def _probe_one_sync(relay_id: int) -> tuple[ProbeResult, str | None]:
         db.close()
 
 
-app = FastAPI(
-    title="中测",
-    description="中转站 API 检测平台 — 多中转探测、统计与排名（海外检测节点）",
-    version=__version__,
-    lifespan=lifespan,
-)
+_fastapi_kwargs: dict[str, Any] = {
+    "title": "中测",
+    "description": "中转站 API 检测平台 — 多中转探测、统计与排名（海外检测节点）",
+    "version": __version__,
+    "lifespan": lifespan,
+}
+_og = (settings.public_origin or "").strip()
+if _og:
+    _fastapi_kwargs["servers"] = [{"url": _og, "description": "生产（配置的公网根地址）"}]
+app = FastAPI(**_fastapi_kwargs)
+
+if settings.trusted_host_list:
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=settings.trusted_host_list,
+    )
+
+
+def _path_counts_for_traffic(path: str) -> bool:
+    if path.startswith(("/static/", "/api/")):
+        return False
+    if path in ("/health", "/favicon.ico", "/openapi.json") or path.startswith(
+        ("/docs", "/redoc")
+    ):
+        return False
+    if path in (
+        "/",
+        "/rank",
+        "/yiyuan",
+        "/login",
+        "/workspace",
+        "/admin",
+        "/inclusion",
+    ):
+        return True
+    return path.startswith("/report/")
+
+
+@app.middleware("http")
+async def middleware_count_traffic(request: Request, call_next):
+    response = await call_next(request)
+    if request.method != "GET" or response.status_code >= 400:
+        return response
+    if not _path_counts_for_traffic(request.url.path):
+        return response
+    try:
+        db = SessionLocal()
+        try:
+            from relay_probe.traffic_store import bump_page_view
+
+            bump_page_view(db)
+        finally:
+            db.close()
+    except Exception:  # noqa: BLE001
+        log.exception("traffic bump failed")
+    return response
 
 
 @app.get("/health")
@@ -177,8 +231,8 @@ def api_ranking(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     h = window_hours if window_hours is not None else settings.ranking_window_hours
-    if h < 1 or h > 168:
-        raise HTTPException(400, detail="window_hours 应在 1–168 之间")
+    if h < 1 or h > 744:
+        raise HTTPException(400, detail="window_hours 应在 1–744 之间")
     rows = build_ranking_rows(db, window_hours=h)
     return JSONResponse(
         content={
@@ -216,6 +270,8 @@ def create_relay(
         rank_boost=body.rank_boost,
         group_name=body.group_name.strip() if body.group_name else None,
         site_price=body.site_price.strip() if body.site_price else None,
+        dilution_label=body.dilution_label.strip() if body.dilution_label else None,
+        dilution_override=body.dilution_override,
     )
     db.add(r)
     db.commit()
@@ -236,24 +292,7 @@ def update_relay(
     r = db.query(Relay).filter(Relay.id == relay_id).one_or_none()
     if r is None:
         raise HTTPException(404, detail="relay 不存在")
-    if body.name is not None:
-        r.name = body.name.strip()
-    if body.base_url is not None:
-        r.base_url = body.base_url.strip().rstrip("/")
-    if body.api_key is not None:
-        r.api_key = body.api_key.strip() or None
-    if body.check_path is not None:
-        r.check_path = body.check_path.strip() or "/v1/models"
-    if body.enabled is not None:
-        r.enabled = body.enabled
-    if body.rank_boost is not None:
-        r.rank_boost = body.rank_boost
-    if body.group_name is not None:
-        r.group_name = body.group_name.strip() or None
-    if body.site_price is not None:
-        r.site_price = body.site_price.strip() or None
-    if body.dilution_override is not None:
-        r.dilution_override = body.dilution_override
+    apply_relay_update(r, body)
     db.commit()
     db.refresh(r)
     d = r.to_public_dict()

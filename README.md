@@ -15,7 +15,7 @@ python -m uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765
 ```
 
 - **Web**: 首页 `/`，多模型排行 `/rank`（[禾维 Hvoy](https://hvoy.ai) / [TokensQC](https://tokensqc.com) 风格分栏，在线率/掺水/延迟/状态），受理收录 `/inclusion`（表单项参考 [Hvoy 联系页](https://hvoy.ai/contact) 习惯），`JWT_SECRET`+`INIT_ADMIN_*` 配置后使用 `/login` 与后台 `/admin`；静态资源在 `/static`。
-- **JSON**: 总榜 `GET /api/ranking`；多模型分榜 `GET /api/dashboard?window_hours=24`
+- **JSON**: 总榜 `GET /api/ranking?window_hours=`（1–744 小时）；多模型分榜 `GET /api/dashboard?window_hours=`；排行页合并拉取 `GET /api/rank-bundles`（日 24h / 周 168h / 月 720h 三套）
 - **OpenAPI**: `http://127.0.0.1:8765/docs`
 
 **说明：** 「掺水率」在深度对话探针未接入前为 **—** 或库表字段 `dilution_override`；**在线率/延迟** 来自对 `GET /v1/models` 的响应中是否**子串匹配**各模型线号（见 `relay_probe/model_catalog.py`），与商业质检站全量能力可能不同。
@@ -28,7 +28,7 @@ python -m uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765
 
 | 变量 | 怎么填 |
 |------|--------|
-| **`RANKING_WINDOW_HOURS`** | 用 **几小时** 内的探测样本来算「窗口成功率、平均延迟」。例如填 **`24`** 表示统计**最近 24 小时**；看短期波动可改小。 |
+| **`RANKING_WINDOW_HOURS`** | 用 **几小时** 内的探测样本来算「窗口成功率、平均延迟」**默认值**（首页/通用 API 未指定 `window_hours` 时）。可 **1–744** 小时。排行页本身固定为日 24h、周 168h、月 720h 三套。 |
 | **`ADMIN_TOKEN`** | 自己生成一段**长随机**口令（可 `openssl rand -hex 32`），填在等号后。**增删改中转**的接口要带头 `X-Admin-Token: 这段口令`。不填则**任何人**都能改你中转列表，仅适合本机/内网。 |
 | **`RANKING_PIN_FIRST_BASES`** | 逗号分隔的 **`https://` 根地址**（可不要尾 `/`），这些站点在**排名排序时始终排在最前**；展示的成功率、延迟**仍是真实探测数据**，不伪造。示例：`RANKING_PIN_FIRST_BASES=https://dapicloud.com` |
 | `DATA_DIR` | 数据目录，默认 `data`，库在 `data/app.db` |
@@ -36,6 +36,8 @@ python -m uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765
 | `CHECK_INTERVAL_SEC` | `0` 不自动轮询；`>0` 为每轮全量探测后休眠秒数 |
 | `SAMPLE_RETENTION_DAYS` | 更早的样本会删，控库体积 |
 | `HOST` / `PORT` | 监听地址与端口（与 systemd 里要一致） |
+| **`PUBLIC_BASE_URL`** | 对外的站点根，无尾斜杠，如 `https://zhongapice.com`。填后：`/docs` 会显示该地址为 API 基址、页面会输出 `canonical`/`og:url`、且 **HTTPS 时**登录 Cookie 带 `Secure`。 |
+| **`TRUSTED_HOSTS`** | 仅生产反代时建议设：允许访问的 `Host` 名，英文逗号分隔，如 `zhongapice.com,www.zhongapice.com`。不填不校验（适合本机）。 |
 | `JWT_SECRET` | 必须设置，用于 Cookie 登录签名校验。 |
 | `INIT_ADMIN_USERNAME` / `INIT_ADMIN_PASSWORD` | 仅当**尚无用户**时创建首个**管理员**账号（之后用 `/login` 进 `/admin`）。 |
 | `ALLOW_REGISTER` | 默认 `true`：未登录用户可 `/login` 自助注册**普通**账号（`admin` 名保留给管理员注册拒绝）。 |
@@ -60,6 +62,33 @@ curl -sS -X POST "http://127.0.0.1:8765/api/relays" \
 ### 排名规则（简要）
 
 在统计窗口内：对每条中转统计样本数、成功次数、成功率，以及**仅成功样本**的平均延迟；先按**成功率**降序，再按**平均延迟**升序；无样本的中转排在后面。
+
+### 公网域名与 HTTPS（以 zhongapice.com 为例）
+
+1. 在 DNS 为域名添加 **A/AAAA** 指向你的 VPS 公网 IP。  
+2. 本机仍由 **Nginx、Caddy** 等反代到 `http://127.0.0.1:8765`（与 `PORT` 一致），反代上配置 **Let’s Encrypt** 等拿到证书，对外为 **443 HTTPS**。  
+3. **把变量写进** 项目根目录的 **`.env` 文件**（不要只在终端里打 `KEY=value`，那不会持久、进程也读不到）：
+   ```bash
+   cd /opt/relay-probe
+   nano .env   # 或 vim .env
+   ```
+   在文件中增加或修改（无尾斜杠）：
+   ```env
+   PUBLIC_BASE_URL=https://zhongapice.com
+   TRUSTED_HOSTS=zhongapice.com,www.zhongapice.com
+   ```
+   保存后退出。若用 `www` 子域，DNS/证书中要与之一致或做 301 到主域。  
+4. **重启** 跑中测的进程，环境变量才会重新加载。若使用仓库里的 systemd 单元，服务名一般是 **`relay-probe`**（见 `deploy/relay-probe.service`）：
+   ```bash
+   # 先确认实际单元名（你机器上可能不同）
+   systemctl list-units --type=service --all | grep -iE 'relay|uvicorn|zhongce'
+
+   sudo systemctl restart relay-probe
+   sudo systemctl status relay-probe
+   ```
+   若未用 systemd、而是手动的 `uvicorn …`，需停掉原进程后**在 `/opt/relay-probe` 下**再执行：  
+   `/opt/relay-probe/.venv/bin/uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765`（或用你原来的启动方式）。  
+5. 验证：浏览器打开 `https://zhongapice.com/docs`；页面「查看源」中应能见到指向 `https://zhongapice.com` 的 `canonical`（若已配置 `PUBLIC_BASE_URL`）。
 
 ## 推送到 GitHub 与服务器
 

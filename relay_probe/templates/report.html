@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}检测报告 · {{ public_id }}{% endblock %}
+{% block main %}
+<div class="report-page" id="report-page-root">
+  <header class="report-hero card-spotlight">
+    <h1 class="h1-magic gradient-text" data-i18n="rep_h1">在线检测报告</h1>
+    <p class="meta report-meta-line">
+      <span>ID: <code>{{ public_id }}</code></span>
+      <span>·</span>
+      {% if report_saved_at %}
+      <time datetime="{{ report_saved_at.isoformat() }}">{{ report_saved_at.strftime("%Y-%m-%d %H:%M") }} UTC</time>
+      {% else %}
+      <time>—</time>
+      {% endif %}
+    </p>
+  </header>
+
+  {% set ru = report_payload.get("report_ui") or {} %}
+  {% set p = (ru.get("score_percent") or 0)|int %}
+  <section class="probe-report-block magic-card" aria-label="report body">
+    <div class="probe-report-head2">
+      <h2 class="h2-magic" data-i18n="rep_h2">检测结果</h2>
+    </div>
+    <div class="probe-report-body2">
+      <div class="probe-score-wrap">
+        <div class="probe-score-ring" style="--p: {{ p }}">
+          <div class="probe-score-inner">
+            <span class="probe-score-pct">{{ p }}%</span>
+            <span class="probe-score-hl i18n-zh">{{ ru.get("headline_zh", "—") }}</span>
+            <span class="probe-score-hl i18n-en">{{ ru.get("headline_en", "—") }}</span>
+          </div>
+        </div>
+        <p class="rep-cite small muted" data-i18n="rep_by">中测 / OpenAI-compatible 目录探测</p>
+      </div>
+      <ul class="probe-checklist" role="list">
+        {% for row in (ru.get("checklist") or []) %}
+        <li class="ck ck-{{ row.get('state', 'skip') }}">
+          <span class="ck-ico" aria-hidden="true">{% if row.get('state') == 'pass' %}✓{% elif row.get('state') == 'warn' %}△{% elif row.get('state') == 'fail' %}✗{% else %}—{% endif %}</span>
+          <div class="ck-twrap">
+            <span class="ck-t i18n-zh">{{ row.get('text_zh', '') }}</span>
+            <span class="ck-t i18n-en">{{ row.get('text_en', '') }}</span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="probe-metricbar">
+      {% set _lat = report_payload.get("latency_ms") %}
+      <div class="pm-item"><span class="pm-k" data-i18n="m_lat">延迟 (ms)</span><span class="pm-v">{% if _lat is not none %}{{ _lat|round(2) }}{% else %}—{% endif %}</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tokps">Tokens/秒</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tin">输入 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tout">输出 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tcr">缓存读 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
+      <div class="pm-item"><span class="pm-k" data-i18n="m_tcw">缓存写 Tokens</span><span class="pm-v" data-i18n="m_na">不适用</span></div>
+    </div>
+    <p class="small muted i18n-zh" data-i18n="m_knote">仅发起 GET /v1/models 目录请求，不统计对话 Token。深度签名/多轮检测未执行。</p>
+    <p class="small muted i18n-en" data-i18n="m_knote_en">Only GET /v1/models; no chat token stats.</p>
+  </section>
+</div>
+{% endblock %}

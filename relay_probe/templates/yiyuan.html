@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}一元模型{% endblock %}
+{% block main %}
+<div class="yiyuan-page">
+  <section class="yiyuan-hero card-spotlight">
+    <h1 class="h1-magic gradient-text">一元模型</h1>
+    <p class="yiyuan-lead">用统一公式，把「充值套路、倍率、官方标价」还原成<strong>每百万 Token 实付人民币</strong>，并与本库已收录站点对照。</p>
+  </section>
+
+  <section class="yiyuan-formula magic-card">
+    <h2 class="h2-magic">1. 核心公式</h2>
+    <p class="formula-line">
+      用户实付单价（<strong>元 / 百万 Token</strong>）=（<strong>官方美金单价</strong> × <strong>站长设定的倍率</strong>）÷ <strong>充值比例</strong>
+    </p>
+    <p class="small muted">其中 <strong>充值比例</strong> = 充值所得额度 ÷ 充值人民币；与下方「1 元购买力」互为倒数关系（见步骤拆解）。</p>
+  </section>
+
+  <section class="yiyuan-steps">
+    <h2 class="h2-magic">2. 三级拆解</h2>
+    <article class="step-card magic-card">
+      <h3>第一步：还原「钱」的价值（真实汇率 / 1 元购买力）</h3>
+      <p>中转站常「充 100 得 200 额度」——先看 <strong>1 元人民币能换多少「站点额度」</strong>。</p>
+      <p class="mono-block">1 元购买力 = 充值所得额度 ÷ 充值人民币</p>
+      <p class="example">例：充 100 元得 150 额度 → 1 元 = 1.5 单位额度（若站点把额度按美金对标，可理解为 1.5 美金等价的「虚标」购买力）。</p>
+    </article>
+    <article class="step-card magic-card">
+      <h3>第二步：还原「货」的价格（模型单价，额度口径）</h3>
+      <p>用官方每百万 Token 的美金标价 × 站长倍率，得到「每百万扣多少额度」。</p>
+      <p class="mono-block">实际消耗额度（每百万）= 官方美金单价 × 站长倍率</p>
+      <p class="example">例：官方 5 美金/M、站长 2 倍 → 每百万扣 10 美金等价的额度。</p>
+    </article>
+    <article class="step-card magic-card">
+      <h3>第三步：实付人民币（元 / 百万 Token）</h3>
+      <p>把「每百万扣多少额度」与「1 元能买多少额度」相除，得到从兜里掏的<strong>人民币</strong>。</p>
+      <p class="mono-block">实付元/百万 = 实际消耗额度（每百万）÷ 1 元购买力 =（官方美金单价 × 站长倍率 × 充值人民币）÷ 充值所得额度</p>
+      <p class="example">大白话：买 100 万个 Token，相当于掏了多少<strong>真人民币</strong>。</p>
+    </article>
+  </section>
+
+  <section class="yiyuan-calc magic-card" id="yiyuan-calc">
+    <h2 class="h2-magic">3. 计算器</h2>
+    <p class="small">以下输入均为示例口径；<strong>官方美金单价</strong> 请填「每百万 Token 标价（USD）」。</p>
+    <div class="calc-grid">
+      <label>官方美金单价（$/百万 Token）<input type="number" id="yiyuan-p-usd" min="0" step="0.0001" value="5" /></label>
+      <label>站长倍率<input type="number" id="yiyuan-mult" min="0" step="0.01" value="2" /></label>
+      <label>充值人民币（元）<input type="number" id="yiyuan-rmb" min="0" step="0.01" value="100" /></label>
+      <label>充值所得额度（与站点活动一致）<input type="number" id="yiyuan-credit" min="0" step="0.01" value="150" /></label>
+    </div>
+    <button type="button" class="btn btn-magic primary" id="yiyuan-calc-btn">计算</button>
+    <div class="calc-out" id="yiyuan-out" aria-live="polite">
+      <p><strong>1 元购买力</strong>（额度/元）= <span id="yiyuan-v-purchase">—</span></p>
+      <p><strong>每百万 Token 消耗额度</strong>（与标价同口径）= <span id="yiyuan-v-consume">—</span></p>
+      <p class="result-main"><strong>实付约</strong> <span id="yiyuan-v-final">—</span> <strong>元 / 百万 Token</strong></p>
+    </div>
+  </section>
+
+  <section class="yiyuan-rank magic-card">
+    <h2 class="h2-magic">4. 已收录站点（参考）</h2>
+    <p class="small muted">以下为<strong>中测库内</strong>已启用站点的登记信息（名称、分组、价格标注）；<strong>实付单价</strong>需结合各站实际倍率/活动，用上方公式或计算器自行核算。排名按收录顺序。</p>
+    <div class="table-wrap table-magic">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th>站点</th>
+            <th>分组</th>
+            <th>价格标注</th>
+            <th>Base</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in yiyuan_relays %}
+          <tr>
+            <td class="td-rank"><span class="rank-pill">#{{ loop.index }}</span></td>
+            <td class="td-name"><a class="site-link" href="{{ row.base_url }}" target="_blank" rel="noopener">{{ row.name }}</a></td>
+            <td>{{ row.group }}</td>
+            <td class="td-price">{{ row.price }}</td>
+            <td class="url"><a class="site-link" href="{{ row.base_url }}" target="_blank" rel="noopener"><small>{{ row.base_url }}</small></a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="muted">暂无已启用站点。请管理员通过 <code>POST /api/relays</code> 或 <code>seed_sites</code> 收录。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/yiyuan.js" defer></script>
+{% endblock %}
