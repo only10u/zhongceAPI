@@ -91,7 +91,19 @@
           }
           rows.forEach(function (row) {
             var tr = el("tr", "row-flash");
-            tr.appendChild(el("td", "td-mat-name", row.name));
+            const td0 = el("td", "td-mat-name");
+            if (row.base_url) {
+              var axm = document.createElement("a");
+              axm.className = "site-link";
+              axm.href = row.base_url;
+              axm.target = "_blank";
+              axm.rel = "noopener noreferrer";
+              axm.textContent = row.name;
+              td0.appendChild(axm);
+            } else {
+              td0.textContent = row.name;
+            }
+            tr.appendChild(td0);
             (d.models_meta || []).forEach(function (m) {
               var cell = row.by_slug && row.by_slug[m.slug];
               var txt = "—";
@@ -150,13 +162,23 @@
                 tr.innerHTML =
                   "<td class=\"td-rank\"><span class=\"rank-pill\">#" +
                   x.rank +
-                  "</span></td>" +
-                  '<td class="td-name"></td><td class="td-metric">' +
+                  '</span></td><td class="td-name"></td><td class="td-metric">' +
                   ok +
                   '</td><td class="td-metric td-lat">' +
                   lat +
                   "</td>";
-                tr.querySelector(".td-name").textContent = x.name || "—";
+                var tdn = tr.querySelector(".td-name");
+                if (x.base_url) {
+                  var an = document.createElement("a");
+                  an.className = "site-link";
+                  an.href = x.base_url;
+                  an.target = "_blank";
+                  an.rel = "noopener noreferrer";
+                  an.textContent = x.name || "—";
+                  tdn.appendChild(an);
+                } else {
+                  tdn.textContent = x.name || "—";
+                }
                 tb.appendChild(tr);
               });
             }
@@ -191,6 +213,7 @@
     const det = svc.model_detail || [];
     const labels = det.map(function (m) { return m.name_zh || m.slug; });
     const present = det.map(function (m) { return m.present ? 1 : 0; });
+    var selslug = (svc && svc.selected_slug) || "opus-47";
     const elBar = document.getElementById("chart-models-h");
     const elD = document.getElementById("chart-hit-d");
     const elL = document.getElementById("chart-lat-line");
@@ -212,7 +235,12 @@
           {
             label: "匹配",
             data: present,
-            backgroundColor: present.map(function (p) { return p ? "rgba(52, 211, 153, 0.8)" : "rgba(113, 113, 122, 0.5)"; }),
+            backgroundColor: det.map(function (m, i) {
+              var p = present[i];
+              var isSel = m.slug === selslug;
+              if (isSel) return p ? "#34d399" : "rgba(251, 191, 36, 0.85)";
+              return p ? "rgba(52, 211, 153, 0.55)" : "rgba(113, 113, 122, 0.45)";
+            }),
           },
         ],
       },
@@ -370,7 +398,18 @@
           return td;
         })()
       );
-      const tdN = el("td", "td-name", row.name);
+      const tdN = el("td", "td-name");
+      if (row.base_url) {
+        const a = document.createElement("a");
+        a.className = "site-link";
+        a.href = row.base_url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = row.name;
+        tdN.appendChild(a);
+      } else {
+        tdN.textContent = row.name;
+      }
       tr.appendChild(tdN);
       tr.appendChild(el("td", null, row.group || "—"));
       tr.appendChild(el("td", "td-price", String(row.price || "—")));
@@ -387,8 +426,14 @@
       tdSt.appendChild(b);
       tr.appendChild(tdSt);
       const tdU = el("td", "url");
+      const bu = document.createElement("a");
+      bu.className = "site-link";
+      bu.href = row.base_url;
+      bu.target = "_blank";
+      bu.rel = "noopener noreferrer";
       const sm = el("small", null, row.base_url);
-      tdU.appendChild(sm);
+      bu.appendChild(sm);
+      tdU.appendChild(bu);
       tr.appendChild(tdU);
       tbody.appendChild(tr);
     });
@@ -406,7 +451,17 @@
           return td;
         })()
       );
-      tr.appendChild(el("td", "td-name", x.name));
+      const tdn = el("td", "td-name");
+      if (x.base_url) {
+        const ax = document.createElement("a");
+        ax.className = "site-link";
+        ax.href = x.base_url;
+        ax.target = "_blank";
+        ax.rel = "noopener noreferrer";
+        ax.textContent = x.name;
+        tdn.appendChild(ax);
+      } else tdn.textContent = x.name;
+      tr.appendChild(tdn);
       const rate =
         x.samples_in_window && x.success_rate != null
           ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%"
@@ -415,7 +470,15 @@
       const lat = x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
       tr.appendChild(el("td", "td-metric td-lat", lat));
       const tdu = el("td", "url");
-      tdu.appendChild(el("small", null, x.base_url));
+      if (x.base_url) {
+        const bx = document.createElement("a");
+        bx.className = "site-link";
+        bx.href = x.base_url;
+        bx.target = "_blank";
+        bx.rel = "noopener noreferrer";
+        bx.appendChild(el("small", null, x.base_url));
+        tdu.appendChild(bx);
+      }
       tr.appendChild(tdu);
       tbody.appendChild(tr);
     });
@@ -471,10 +534,72 @@
     go();
   }
 
+  function initHvoyCards() {
+    const box = document.getElementById("model-cards-hvoy");
+    const hint = document.getElementById("probe-hvoy-hint");
+    if (!box) return;
+    const cards = box.querySelectorAll(".model-card-hvoy");
+    function updateHint() {
+      if (!hint) return;
+      const r = box.querySelector('input[name="model_slug"]:checked');
+      if (!r) return;
+      const lab = r.closest("label");
+      const n = lab && lab.querySelector(".model-card-t");
+      const c = lab && lab.querySelector(".model-card-id");
+      var ntxt = n ? n.textContent : "";
+      var ctx = c ? c.textContent : "";
+      var lang = document.getElementById("html-root") && document.getElementById("html-root").getAttribute("lang");
+      if (lang === "en") {
+        hint.textContent = "Primary line: " + ntxt + " · match " + ctx + " in /v1/models";
+      } else {
+        hint.textContent = "主评 " + ntxt + "：在 /v1/models 返回中匹配 " + ctx + "。";
+      }
+    }
+    box.addEventListener("change", function () {
+      cards.forEach(function (c) {
+        c.classList.toggle("is-checked", c.querySelector("input").checked);
+      });
+      updateHint();
+    });
+    cards.forEach(function (c) {
+      c.classList.toggle("is-checked", c.querySelector("input").checked);
+    });
+    updateHint();
+  }
+
+  function initRankTabs() {
+    const nav = document.getElementById("rank-model-tabs");
+    if (!nav) return;
+    nav.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest && e.target.closest(".rank-tab[data-slug]");
+      if (!btn) return;
+      e.preventDefault();
+      var slug = btn.getAttribute("data-slug");
+      nav.querySelectorAll(".rank-tab").forEach(function (b) {
+        b.classList.remove("is-active");
+      });
+      btn.classList.add("is-active");
+      document.querySelectorAll(".model-block.tabbed").forEach(function (sec) {
+        sec.classList.toggle("model-block--hidden", sec.getAttribute("data-slug") !== slug);
+      });
+      try {
+        history.replaceState(null, "", "#m-" + slug);
+      } catch (ex) {}
+    });
+    var h0 = (location.hash || "").replace("#", "");
+    if (h0.indexOf("m-") === 0) {
+      var sl = h0.slice(2);
+      var b0 = nav.querySelector('.rank-tab[data-slug="' + sl + '"]');
+      if (b0) b0.click();
+    }
+  }
+
   function go() {
     initHomeBroadcast();
+    initHvoyCards();
     initHomeProbe();
     initMatrix();
+    initRankTabs();
     initRankPoll();
     initInclusion();
   }

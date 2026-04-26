@@ -53,7 +53,16 @@
             ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%" : "—";
           const lat = x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
           tr.innerHTML = "<td class=\"td-rank\"><span class=\"rank-pill\">#" + x.rank + "</span></td><td class=\"td-name\"></td><td class=\"td-metric\">" + rate + "</td><td class=\"td-metric\">" + lat + "</td>";
-          tr.querySelector(".td-name").textContent = x.name;
+          var tdn = tr.querySelector(".td-name");
+          if (x.base_url) {
+            var a = document.createElement("a");
+            a.className = "site-link";
+            a.href = x.base_url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = x.name;
+            tdn.appendChild(a);
+          } else tdn.textContent = x.name;
           tb.appendChild(tr);
         });
         if (leg.length === 0) {

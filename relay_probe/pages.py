@@ -31,7 +31,11 @@ from relay_probe.dashboard_stats import (
     build_home_stats,
     build_relay_model_matrix,
 )
-from relay_probe.model_catalog import TRACKED_MODELS, match_models
+from relay_probe.model_catalog import (
+    TRACKED_MODELS,
+    get_tracked_by_slug,
+    match_models,
+)
 from relay_probe.probe import result_to_dict, run_probe
 from relay_probe.ranking import build_ranking_rows
 from starlette.concurrency import run_in_threadpool
@@ -96,7 +100,9 @@ def _ctx(request: Request, **extra) -> dict:
 
 @router.get("/", response_class=HTMLResponse)
 def page_home(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("home.html", _ctx(request))
+    return templates.TemplateResponse(
+        "home.html", _ctx(request, models_ui=TRACKED_MODELS)
+    )
 
 
 @router.get("/rank", response_class=HTMLResponse)
@@ -203,9 +209,11 @@ def api_relay_matrix(
 
 
 def _kuma_service_status(
-    res: object, model_matches: dict[str, bool]
+    res: object,
+    model_matches: dict[str, bool],
+    selected_slug: str = "opus-47",
 ) -> dict[str, Any]:
-    """对齐 Uptime Kuma 式状态：up / degraded / down + 六线摘要。"""
+    """对齐 Uptime Kuma 式状态：up / degraded / down + 六线摘要；标记当前选中模型。"""
     st = "down"
     sc = getattr(res, "http_status", None)
     if getattr(res, "error", None) and sc is None:
@@ -228,7 +236,9 @@ def _kuma_service_status(
                 "slug": slug,
                 "name_zh": m["name_zh"],
                 "name_en": m["name_en"],
+                "card_id": m.get("card_id", ""),
                 "present": bool(model_matches.get(slug)),
+                "selected": slug == selected_slug,
             }
         )
     return {
@@ -241,6 +251,7 @@ def _kuma_service_status(
         "model_tracked": total,
         "model_hit_ratio": round(hit / total, 3) if total else 0.0,
         "model_detail": model_detail,
+        "selected_slug": selected_slug,
     }
 
 
@@ -249,8 +260,12 @@ async def api_try_probe(
     request: Request,
     base_url: str = Form(...),
     api_key: str = Form(""),
-    check_path: str = Form("/v1/models"),
+    model_slug: str = Form("opus-47"),
 ) -> JSONResponse:
+    """
+    在线检测：固定 GET `/v1/models`（与排行同源），
+    由 `model_slug` 指定「主评」目标线；在返回体中子串匹配六线。
+    """
     _check_probe_rl(_client_ip(request))
     bu = (base_url or "").strip()
     if not bu.startswith(("http://", "https://")):
@@ -259,9 +274,11 @@ async def api_try_probe(
         )
     if len(bu) > 2048:
         raise HTTPException(400, detail="地址过长")
-    path = (check_path or "/v1/models").strip() or "/v1/models"
-    if len(path) > 512 or not path.startswith("/"):
-        raise HTTPException(400, detail="检测路径需为以 / 开头的相对路径")
+    msel = (model_slug or "opus-47").strip()
+    tr = get_tracked_by_slug(msel)
+    if tr is None:
+        raise HTTPException(400, detail="请从六条模型线中勾选其一")
+    path = "/v1/models"
     key = api_key.strip() or None
     if key and len(key) > 4096:
         raise HTTPException(400, detail="Key 过长")
@@ -274,7 +291,13 @@ async def api_try_probe(
     out = result_to_dict(res, include_body=False)
     out["model_matches"] = matches
     out["check_path_used"] = path
-    kuma = _kuma_service_status(res, matches)
+    out["primary_model"] = {
+        "slug": msel,
+        "name_zh": tr["name_zh"],
+        "card_id": tr.get("card_id", ""),
+        "present": bool(matches.get(msel)),
+    }
+    kuma = _kuma_service_status(res, matches, msel)
     out["service_status"] = kuma
     out["checked_at"] = datetime.now(timezone.utc).isoformat()
     return JSONResponse(content=out)

@@ -145,6 +145,7 @@ def build_full_dashboard(
                 "slug": m["slug"],
                 "name_zh": m["name_zh"],
                 "name_en": m["name_en"],
+                "card_id": m.get("card_id", ""),
             }
             for m in TRACKED_MODELS
         ],

@@ -45,23 +45,43 @@
   <div class="home-split">
     <section class="home-detector magic-card float-card" id="home-detector">
       <h2 class="h2-magic"><span data-i18n="detector_h2">在线检测</span> <span class="tag-beta">LIVE</span></h2>
-      <p class="detector-hint i18n-zh" data-i18n="detector_hint">输入任意 OpenAI 兼容「API 根地址」，可选填 Key（仅本次请求经服务器转发，<strong>不作持久保存</strong>）。请求 <code>GET 根地址+检测路径</code> 并在返回中匹配下方模型子串。受频控，请勿滥用。</p>
-      <p class="detector-hint i18n-en" data-i18n="detector_hint_en">One-off GET to your base + path. API key is used for this request only, not stored. Rate-limited.</p>
-      <form id="form-try-probe" class="detector-form" autocomplete="off">
-        <label>
-          <span data-i18n="detector_api">API 根地址</span>
-          <input name="base_url" type="url" required placeholder="https://api.example.com" class="in-magic"/>
-        </label>
-        <label>
-          <span data-i18n="detector_key">API Key</span>
-          <input name="api_key" type="password" class="in-magic" placeholder="sk-…" autocomplete="off"/>
-        </label>
-        <label>
-          <span data-i18n="detector_path">检测路径</span>
-          <input name="check_path" type="text" class="in-magic" value="/v1/models"/>
-        </label>
-        <div class="model-pick" data-i18n="detector_models_hint">结果将显示各目标模型是否在返回中出现（子串匹配）：</div>
-        <button type="submit" class="btn btn-magic primary full" data-i18n="detector_go">开始检测</button>
+      <div class="detector-hvoy-head">
+        <span class="detector-sec-title" data-i18n="detector_sec_cfg">接口配置</span>
+        <a class="detector-hist-link" href="/rank" data-i18n="detector_hist">中转站排行</a>
+      </div>
+      <p class="detector-hint i18n-zh" data-i18n="detector_hint2">向网关请求 <code>GET /v1/models</code>，在返回中检测下列<strong>目标模型</strong>子串。可选 Key 仅本次经服务器转发、<strong>不保存</strong>。先选择「主评」线再开始检测。</p>
+      <p class="detector-hint i18n-en" data-i18n="detector_hint2_en">We GET <code>/v1/models</code> once. Pick the primary line to score; key not stored. Rate-limited.</p>
+      <form id="form-try-probe" class="detector-form detector-form-hvoy" autocomplete="off">
+        <div class="hvoy-inputs">
+          <label class="hvoy-field">
+            <span class="hvoy-ico" aria-hidden="true">🔍</span>
+            <span class="sr-only" data-i18n="detector_api">API 根地址</span>
+            <input name="base_url" type="url" required placeholder="https://api.xxx.com" class="in-magic"/>
+          </label>
+          <label class="hvoy-field">
+            <span class="hvoy-ico" aria-hidden="true">🔑</span>
+            <span class="sr-only" data-i18n="detector_key">API Key</span>
+            <input name="api_key" type="password" class="in-magic" placeholder="sk-…" autocomplete="off"/>
+          </label>
+        </div>
+        <div class="model-pick-hvoy" data-i18n="target_model_lbl">目标模型</div>
+        <div class="model-cards-hvoy" id="model-cards-hvoy" role="group" aria-label="目标模型">
+          {% for m in models_ui %}
+          <label class="model-card-hvoy {% if m.slug == 'opus-47' %}is-checked{% endif %} {% if m.badge == 'new' %}has-badge{% endif %}">
+            <input type="radio" name="model_slug" value="{{ m.slug }}" {% if m.slug == 'opus-47' %}checked{% endif %} class="model-card-input"/>
+            {% if m.badge == 'new' %}<span class="hvoy-new" data-i18n="chip_badge">新</span>{% endif %}
+            <span class="model-card-check" aria-hidden="true">✓</span>
+            <span class="model-card-t">{{ m.name_zh }}</span>
+            <span class="model-card-id">{{ m.card_id }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <p class="hvoy-info" id="probe-hvoy-hint" data-default-hint-zh="当前主评线：{name}。将在 /v1/models 返回中匹配子串 {card}。">—</p>
+        <div class="hvoy-bottom">
+          <p class="hvoy-privacy i18n-zh" data-i18n="detector_privacy">不保存你的 Key 与业务对话。建议测试专用 Key。</p>
+          <p class="hvoy-privacy i18n-en" data-i18n="detector_privacy_en">Key not stored. Prefer a test key.</p>
+          <button type="submit" class="btn btn-magic primary hvoy-submit" data-i18n="detector_go">开始检测</button>
+        </div>
       </form>
       <div id="probe-kuma-pill" class="probe-kuma-pill" hidden>
         <span class="kuma-pill" id="probe-svc-emoji">—</span>
