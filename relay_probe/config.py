@@ -84,7 +84,12 @@ class Settings(BaseSettings):
     def trusted_host_list(self) -> list[str]:
         if not (self.trusted_hosts or "").strip():
             return []
-        return [h.strip() for h in self.trusted_hosts.split(",") if h.strip()]
+        raw = [h.strip() for h in self.trusted_hosts.split(",") if h.strip()]
+        # 本机环回，便于在服务器上 curl 127.0.0.1 做 /health、reseed；不必写进 .env
+        for loop in ("127.0.0.1", "localhost"):
+            if loop not in raw:
+                raw.append(loop)
+        return raw
 
 
 def check_url_for(base: str, check_path: str) -> str:
