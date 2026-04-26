@@ -278,6 +278,7 @@ def create_relay(
         api_key=body.api_key.strip() if body.api_key and body.api_key.strip() else None,
         check_path=body.check_path.strip() or "/v1/models",
         enabled=body.enabled,
+        rank_boost=body.rank_boost,
     )
     db.add(r)
     db.commit()
@@ -308,6 +309,8 @@ def update_relay(
         r.check_path = body.check_path.strip() or "/v1/models"
     if body.enabled is not None:
         r.enabled = body.enabled
+    if body.rank_boost is not None:
+        r.rank_boost = body.rank_boost
     db.commit()
     db.refresh(r)
     d = r.to_public_dict()

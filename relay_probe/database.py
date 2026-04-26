@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from relay_probe.config import Settings
@@ -29,9 +29,22 @@ def _sqlite_enforce_fk(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+def _ensure_relay_columns() -> None:
+    if not str(settings.database_url).startswith("sqlite"):
+        return
+    with engine.begin() as conn:
+        r = conn.execute(text("PRAGMA table_info(relays)"))
+        names = {row[1] for row in r.all()}
+        if "rank_boost" not in names:
+            conn.execute(
+                text("ALTER TABLE relays ADD COLUMN rank_boost INTEGER NOT NULL DEFAULT 0")
+            )
+
+
 def init_db() -> None:
     settings.data_path.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    _ensure_relay_columns()
 
 
 def get_db() -> Generator[Session, None, None]:

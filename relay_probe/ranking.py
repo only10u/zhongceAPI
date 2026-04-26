@@ -9,6 +9,13 @@ from relay_probe.models import ProbeSample, Relay
 
 settings = Settings()
 
+# 与数据库 rank_boost 叠加；被 RANKING_PIN_FIRST_BASES 命中的 base 在排序中极大靠前
+_PIN_FIRST_BONUS = 1_000_000_000
+
+
+def _norm_base_url(u: str) -> str:
+    return (u or "").strip().rstrip("/").lower()
+
 
 def window_start_utc(hours: int) -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)
@@ -58,6 +65,7 @@ def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dic
             "avg_latency_ms": round(float(avg), 2) if avg is not None else None,
         }
 
+    pin = settings.pin_first_base_set
     relays = db.query(Relay).order_by(Relay.id).all()
     rows: list[dict[str, Any]] = []
     for r in relays:
@@ -76,6 +84,9 @@ def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dic
             .order_by(ProbeSample.created_at.desc())
             .first()
         )
+        nb = _norm_base_url(r.base_url)
+        pin_first = bool(pin and nb in pin)
+        sort_weight = int(r.rank_boost) + (_PIN_FIRST_BONUS if pin_first else 0)
         rows.append(
             {
                 "relay_id": r.id,
@@ -83,6 +94,8 @@ def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dic
                 "base_url": r.base_url,
                 "enabled": r.enabled,
                 "check_path": r.check_path,
+                "rank_boost": r.rank_boost,
+                "pin_first": pin_first,
                 "samples_in_window": st["samples_in_window"],
                 "ok_in_window": st["ok_in_window"],
                 "success_rate": st["success_rate"],
@@ -90,18 +103,21 @@ def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dic
                 "last_check_at": last.created_at.isoformat() if last else None,
                 "last_ok": last.ok if last else None,
                 "last_latency_ms": last.latency_ms if last else None,
+                "sort_weight": sort_weight,
             }
         )
 
     def rank_key(d: dict[str, Any]) -> tuple:
+        sw = d["sort_weight"]
         n = d["samples_in_window"]
-        if n == 0:
-            return (1, 0, "")
-        sr = d["success_rate"]
+        tie = 1 if n == 0 else 0
+        sr = d["success_rate"] if n else 0.0
         lat = d["avg_latency_ms"] if d["avg_latency_ms"] is not None else 1e9
-        return (0, -sr, lat)
+        return (-sw, tie, -sr, lat)
 
     rows.sort(key=rank_key)
+    for d in rows:
+        d.pop("sort_weight", None)
     for i, d in enumerate(rows, start=1):
         d["rank"] = i
     return rows

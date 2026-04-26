@@ -24,6 +24,8 @@ class Relay(Base):
     api_key: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     check_path: Mapped[str] = mapped_column(String(512), default="/v1/models")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    # 仅影响排序权值（越大越靠前），与 RANKING_PIN_FIRST_BASES 可叠加
+    rank_boost: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, nullable=False
     )
@@ -39,6 +41,7 @@ class Relay(Base):
             "base_url": self.base_url,
             "check_path": self.check_path,
             "enabled": self.enabled,
+            "rank_boost": self.rank_boost,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

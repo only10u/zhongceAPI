@@ -18,19 +18,22 @@ python -m uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765
 - **排名 JSON**: `GET /api/ranking?window_hours=24`
 - **API 文档**: `http://127.0.0.1:8765/docs`
 
-### 环境变量（`.env`）
+### 环境变量（`.env`）——「第五步」怎么填
 
-全局**不再**配置「单一」`RELAY_BASE_URL`；中转列表通过 **API 写入数据库**（见下）。
+全局**不**再配置单一路径 `RELAY_BASE_URL`；多中转在 **API / 数据库** 里维护。在服务器上 `nano /opt/relay-probe/.env` 时重点看这些：
 
-| 变量 | 含义 |
-|------|------|
-| `DATA_DIR` | SQLite 与数据目录，默认 `data`（库文件 `data/app.db`） |
-| `HTTP_TIMEOUT_SEC` | 单次 GET 超时 |
-| `CHECK_INTERVAL_SEC` | `0` 不后台轮询；`>0` 为每轮「所有已启用中转」探完后的休眠秒数 |
-| `RANKING_WINDOW_HOURS` | 默认统计窗口（小时），`GET /api/ranking` 可用参数覆盖 |
-| `SAMPLE_RETENTION_DAYS` | 删除超过该天数的探测样本 |
-| `HOST` / `PORT` | 服务监听 |
-| `ADMIN_TOKEN` | 若设置，则增删改中转需请求头 `X-Admin-Token`；不设置则写接口对任意客户端开放（仅建议内网/测试） |
+| 变量 | 怎么填 |
+|------|--------|
+| **`RANKING_WINDOW_HOURS`** | 用 **几小时** 内的探测样本来算「窗口成功率、平均延迟」。例如填 **`24`** 表示统计**最近 24 小时**；看短期波动可改小。 |
+| **`ADMIN_TOKEN`** | 自己生成一段**长随机**口令（可 `openssl rand -hex 32`），填在等号后。**增删改中转**的接口要带头 `X-Admin-Token: 这段口令`。不填则**任何人**都能改你中转列表，仅适合本机/内网。 |
+| **`RANKING_PIN_FIRST_BASES`** | 逗号分隔的 **`https://` 根地址**（可不要尾 `/`），这些站点在**排名排序时始终排在最前**；展示的成功率、延迟**仍是真实探测数据**，不伪造。示例：`RANKING_PIN_FIRST_BASES=https://dapicloud.com` |
+| `DATA_DIR` | 数据目录，默认 `data`，库在 `data/app.db` |
+| `HTTP_TIMEOUT_SEC` | 单次 `GET` 超时秒数 |
+| `CHECK_INTERVAL_SEC` | `0` 不自动轮询；`>0` 为每轮全量探测后休眠秒数 |
+| `SAMPLE_RETENTION_DAYS` | 更早的样本会删，控库体积 |
+| `HOST` / `PORT` | 监听地址与端口（与 systemd 里要一致） |
+
+在数据库里，单条中转还可设可选字段 **`rank_boost`**（越大越靠前，API 的 `POST/PATCH` 可带），与 `RANKING_PIN_FIRST_BASES` 可叠加；仍**不会**把成功率改为假的 100%。
 
 ### 管理中转（写操作）
 

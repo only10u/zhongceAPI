@@ -4,6 +4,15 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _parse_base_list(raw: str) -> set[str]:
+    out: set[str] = set()
+    for part in (raw or "").replace("\n", ",").split(","):
+        p = part.strip()
+        if p:
+            out.add(p.rstrip("/").lower())
+    return out
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -18,6 +27,11 @@ class Settings(BaseSettings):
     check_interval_sec: int = Field(default=0, ge=0)
     # 排名统计窗口
     ranking_window_hours: int = Field(default=24, ge=1, le=168)
+    # 逗号分隔的 base_url（会规范化：去尾 /、小写），在排名中固定先于其它条目；不改变真实探测结果
+    ranking_pin_first_bases: str = Field(
+        default="",
+        description="e.g. https://dapicloud.com",
+    )
     # 历史样本超过该天数会清理（启动与每轮探测后）
     sample_retention_days: int = Field(default=7, ge=1, le=90)
     host: str = Field(default="0.0.0.0")
@@ -34,6 +48,10 @@ class Settings(BaseSettings):
         p = (self.data_path / "app.db").resolve()
         p.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{p.as_posix()}"
+
+    @property
+    def pin_first_base_set(self) -> set[str]:
+        return _parse_base_list(self.ranking_pin_first_bases)
 
 
 def check_url_for(base: str, check_path: str) -> str:
