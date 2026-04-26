@@ -18,7 +18,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
   <section class="card magic-card admin-relay-hub" id="admin-relays">
     <header class="admin-relay-hub-head">
       <h2 class="h2-magic admin-relay-hub-title">中转站站点管理</h2>
-      <p class="admin-relay-hub-lead i18n-zh">在此维护每个已收录站点的<strong>名称、Base、分组、价格、掺水、探测路径、启用状态与 API Key</strong>；与排行、一元模型页展示一致。保存后立即写入数据库。</p>
+      <p class="admin-relay-hub-lead i18n-zh">在此维护每个已收录站点的<strong>名称、Base、分组、1人民币=x Token（登记文本）、掺水、探测路径、启用状态与 API Key</strong>；与排行、一元模型页展示一致。保存后立即写入数据库。</p>
       <p class="admin-relay-hub-lead i18n-en">Edit each relay’s fields; saved to DB. Key: leave blank to keep current.</p>
       <div class="admin-relay-hub-actions">
         <a class="btn btn-ghost btn-sm" href="#relay-overview">总览表</a>
@@ -35,7 +35,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
             <th>名称</th>
             <th>Base URL</th>
             <th>分组</th>
-            <th>价格摘要</th>
+            <th>1人民币=x Token（摘）</th>
             <th>启用</th>
             <th>Key</th>
             <th></th>
@@ -61,7 +61,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
     </div>
 
     <h3 class="admin-relay-subh" id="relay-edit-start">逐项编辑</h3>
-    <p class="small muted admin-relay-hint">价格：建议与「一元模型」展示一致，如 <code>O4.7:$5 O4.6:$5 S4.6:$3</code>。API Key 仅在新填写时覆盖，留空不变。</p>
+    <p class="small muted admin-relay-hint">登记格式建议 <code>1人民币=x Token</code>（x 为可读数字）；亦可与历史数据兼容。API Key 仅在新填写时覆盖，留空不变。</p>
   </section>
 
   <div class="admin-relay-list">
@@ -75,7 +75,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         <label><span>名称</span> <input name="name" type="text" value="{{ r.name }}" required/></label>
         <label class="span2"><span>Base URL</span> <input name="base_url" type="url" value="{{ r.base_url }}" required/></label>
         <label><span>站点分组</span> <input name="group_name" type="text" value="{{ r.group_name or '' }}" placeholder="可选"/></label>
-        <label><span>价格（排行 / 一元）</span> <input name="site_price" type="text" value="{{ r.site_price or '' }}" placeholder="如 O4.7:$5 O4.6:$5" maxlength="64"/></label>
+        <label><span>1人民币=x Token</span> <input name="site_price" type="text" value="{{ r.site_price or '' }}" placeholder="如 1人民币=150000Token" maxlength="64"/></label>
         <label><span>掺水率文案</span> <input name="dilution_label" type="text" value="{{ r.dilution_label or '' }}" placeholder="如 几乎不（优先生效）" maxlength="64"/></label>
         <label><span>掺水率 %</span> <input name="dilution_override" type="number" min="0" max="100" step="0.1" value="{{ r.dilution_override if r.dilution_override is not none else '' }}" placeholder="0–100，空=清除"/></label>
         <label><span>排序权值</span> <input name="rank_boost" type="number" value="{{ r.rank_boost }}" min="0"/></label>
