@@ -18,7 +18,7 @@ def build_report_ui(
     slugs = [m["slug"] for m in TRACKED_MODELS]
     http_ok = res.http_status is not None and 200 <= int(res.http_status) < 300
     primary_ok = bool(matches.get(primary_slug))
-    three_hits = sum(1 for s in slugs if matches.get(s))
+    tracked_hits = sum(1 for s in slugs if matches.get(s))
     lat_ok = res.latency_ms is not None
 
     score_pct = int(
@@ -26,7 +26,7 @@ def build_report_ui(
             100
             * (
                 0.5 * (1.0 if primary_ok else 0.0)
-                + 0.3 * (three_hits / max(1, len(slugs)))
+                + 0.3 * (tracked_hits / max(1, len(slugs)))
                 + 0.2 * (1.0 if http_ok else 0.0)
             )
         )
@@ -56,8 +56,8 @@ def build_report_ui(
             return "skip"
         return "pass" if ok else "fail"
 
-    lines_state = "pass" if three_hits >= len(slugs) else (
-        "warn" if three_hits > 0 else "fail"
+    lines_state = "pass" if tracked_hits >= len(slugs) else (
+        "warn" if tracked_hits > 0 else "fail"
     )
 
     ch = chat_usage or {}
@@ -84,10 +84,10 @@ def build_report_ui(
             "text_en": f"Primary line substring present ({primary_slug})",
         },
         {
-            "id": "lines3",
+            "id": "lines-tracked",
             "state": lines_state,
-            "text_zh": f"三线目标在目录中匹配数 {three_hits}/{len(slugs)}",
-            "text_en": f"Three tracked lines matched: {three_hits}/{len(slugs)}",
+            "text_zh": f"收录目标线在目录中匹配数 {tracked_hits}/{len(slugs)}",
+            "text_en": f"Tracked catalog lines matched: {tracked_hits}/{len(slugs)}",
         },
         {
             "id": "latency",

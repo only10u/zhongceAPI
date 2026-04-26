@@ -33,6 +33,8 @@ class Relay(Base):
     dilution_override: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     # 掺水率展示文案（如「几乎不」），优先生于纯数字
     dilution_label: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # JSON：各模型线在分榜/矩阵中是否上架，如 {"gpt-55":false}；缺省或未写 slug 视为上架
+    rank_models_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, nullable=False
     )
@@ -56,6 +58,7 @@ class Relay(Base):
             "site_price": self.site_price,
             "dilution_label": self.dilution_label,
             "dilution_override": self.dilution_override,
+            "rank_models_json": self.rank_models_json,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -136,8 +139,15 @@ class InclusionRequest(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     site_name: Mapped[str] = mapped_column(String(256))
     site_url: Mapped[str] = mapped_column(String(1024))
+    # 成立日期（按日）
+    founded_date: Mapped[Optional[dt.date]] = mapped_column(Date, nullable=True)
+    signup_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    contact_person: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     contact: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    suggested_group: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     remark: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # JSON 数组：申报支持的模型线 slug
+    supported_models_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
         String(32), default="pending"
     )  # pending, approved, rejected

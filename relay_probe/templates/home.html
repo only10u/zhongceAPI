@@ -22,8 +22,7 @@
     <p class="hero-desc i18n-en">OpenAI-compatible gateway checks from <code>/v1/models</code> substring matching. <strong>Live check</strong> below runs a real one-off probe; full rankings stay on the rank page.</p>
     <div class="hero-cta">
       <a class="btn btn-magic primary" href="/rank" data-i18n="home_cta">进入中转站排行</a>
-      <a class="btn btn-magic" href="/rank#inclusion" data-i18n="home_cta2">申请收录</a>
-      <a class="btn btn-ghost" href="/docs" target="_blank" rel="noopener" data-i18n="home_cta_api">OpenAPI 文档</a>
+      <a class="btn btn-magic" href="/inclusion" data-i18n="home_cta2">申请收录</a>
     </div>
   </section>
 
@@ -36,8 +35,8 @@
     </div>
     <div class="kuma-uptime-bars" id="kuma-uptime-bars" title="Uptime 风格近次同步条（本地心跳）" aria-hidden="true"></div>
     <div class="stat-badges">
-      <div class="stat-pill"><span class="n" id="home-stat-enabled">0</span><span class="l" data-i18n="stat_enabled">已启用站点</span></div>
-      <div class="stat-pill"><span class="n" id="home-stat-samples">0</span><span class="l" data-i18n="stat_samples">窗口内探测次数</span></div>
+      <div class="stat-pill" data-i18n-title="stat_enabled_tip" title=""><span class="n" id="home-stat-enabled">0</span><span class="l" data-i18n="stat_enabled">已启用站点</span></div>
+      <div class="stat-pill" data-i18n-title="stat_samples_tip" title=""><span class="n" id="home-stat-samples">0</span><span class="l" data-i18n="stat_samples">窗口内探测次数</span></div>
       <div class="stat-pill"><span class="l" data-i18n="stat_window">统计窗口</span> <span class="n" id="home-stat-window">24</span> h</div>
     </div>
   </section>
@@ -135,7 +134,7 @@
         <p class="small muted i18n-en" id="probe-metric-note-en" data-i18n="m_knote_en">With API key, we also POST /v1/chat/completions. Without a key, models list only. Deep checks not on this page.</p>
       </div>
       <div class="probe-viz" id="probe-viz" hidden>
-        <p class="probe-viz-title" data-i18n="viz_title">本检测 · 三线模型命中间览</p>
+        <p class="probe-viz-title" data-i18n="viz_title">本检测 · 多线模型命中间览</p>
         <div class="probe-viz-row">
           <div class="probe-viz-canvas"><canvas id="chart-models-h" height="200"></canvas></div>
           <div class="probe-viz-canvas probe-viz-d"><canvas id="chart-hit-d" width="200" height="200"></canvas></div>
@@ -199,6 +198,29 @@
         </div>
       </form>
     </section>
+
+    <section class="home-detect-rank magic-card float-card" id="home-detect-rank" aria-label="检测情况排名">
+      <h2 class="h2-magic"><span data-i18n="home_detect_rank_h2">主评线检测排名</span></h2>
+      <div class="detector-hvoy-head">
+        <span class="detector-sec-title" data-i18n="home_detect_rank_sub">24 小时窗 · Opus 4.7</span>
+        <a class="detector-hist-link" href="/rank#m-day-opus-47" data-i18n="home_detect_rank_link">完整排行</a>
+      </div>
+      <p class="small muted" id="home-detect-rank-updated">—</p>
+      <div class="table-wrap table-magic home-detect-rank-wrap">
+        <table class="data-table home-detect-rank-table">
+          <thead>
+            <tr>
+              <th data-i18n="col_rank">排名</th>
+              <th data-i18n="col_site">站点</th>
+              <th data-i18n="col_online">在线率</th>
+              <th data-i18n="col_lat">延迟 (ms)</th>
+              <th data-i18n="col_run">运行状态</th>
+            </tr>
+          </thead>
+          <tbody id="home-detect-rank-tbody"></tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
   <section class="section-block matrix-section" id="matrix-section" aria-label="本库已收录站点">
@@ -217,8 +239,8 @@
   <section class="bento" aria-label="能力概览">
     <article class="magic-card bento-a">
       <h3 class="bento-title" data-i18n="home_b1_t">多模型分榜</h3>
-      <p class="bento-txt i18n-zh">按 <strong>Opus 4.7、Opus 4.6、Sonnet 4.6</strong> 三线分别统计，避免「混在一起看不清」。</p>
-      <p class="bento-txt i18n-en">Per-model leaderboards for Opus 4.7 / 4.6 and Sonnet 4.6—separate scores, not a single blend.</p>
+      <p class="bento-txt i18n-zh">按 <strong>六条</strong> 目标模型线（含 Opus / Sonnet、<strong>GPT 5.5</strong>、<strong>GPT 5.4</strong>、<strong>Gemini 3.1 Pro</strong> 等）分别统计，避免「混在一起看不清」。</p>
+      <p class="bento-txt i18n-en">Six separate model lines (Claude, GPT 5.5/5.4, Gemini 3.1 Pro, …)—distinct scores, not one blended table.</p>
     </article>
     <article class="magic-card bento-b">
       <h3 class="bento-title" data-i18n="home_b2_t">可调时间窗口</h3>
@@ -240,6 +262,9 @@
       <a class="chip" href="/rank#m-day-opus-47">Opus 4.7</a>
       <a class="chip" href="/rank#m-day-opus-46">Opus 4.6</a>
       <a class="chip" href="/rank#m-day-sonnet-46">Sonnet 4.6</a>
+      <a class="chip" href="/rank#m-day-gpt-55">GPT 5.5</a>
+      <a class="chip" href="/rank#m-day-gpt-54">GPT 5.4</a>
+      <a class="chip" href="/rank#m-day-gemini-31-pro">Gemini 3.1 Pro</a>
     </div>
   </section>
 

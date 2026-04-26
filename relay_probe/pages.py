@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import date as date_cls
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,8 @@ from relay_probe.probe import (
 from relay_probe.probe_ui import build_report_ui
 from relay_probe.ranking import build_ranking_rows
 from relay_probe.relay_apply import apply_relay_update
-from relay_probe.schemas import HeartbeatIn, RelayUpdate
+from relay_probe.relay_rank_shelf import parse_rank_map_json
+from relay_probe.schemas import HeartbeatIn, InclusionStatusUpdate, RelayUpdate
 from starlette.concurrency import run_in_threadpool
 
 log = logging.getLogger("relay_probe.pages")
@@ -106,12 +108,25 @@ templates = Jinja2Templates(directory=str(BASE / "templates"))
 COOKIE = "zhongce_token"
 router = APIRouter(tags=["ui"])
 
-# 排行页日/周/月三套窗口与表格（每套含三模型分表 + 总榜）
+# 排行页日/周/月三套窗口与表格（每套含多模型分表 + 总榜）
 RANK_LEADERBOARDS: list[dict[str, Any]] = [
     {"key": "day", "label_zh": "日榜", "label_en": "24h", "hours": 24},
     {"key": "week", "label_zh": "周榜", "label_en": "7d", "hours": 168},
     {"key": "month", "label_zh": "月榜", "label_en": "30d", "hours": 720},
 ]
+
+
+def _inclusion_model_groups() -> list[tuple[str, list[dict[str, Any]]]]:
+    by_slug = {m["slug"]: m for m in TRACKED_MODELS}
+    specs = [
+        ("Claude", ["opus-47", "opus-46", "sonnet-46"]),
+        ("OpenAI", ["gpt-55", "gpt-54"]),
+        ("Google", ["gemini-31-pro"]),
+    ]
+    out: list[tuple[str, list[dict[str, Any]]]] = []
+    for label, slugs in specs:
+        out.append((label, [by_slug[s] for s in slugs if s in by_slug]))
+    return out
 
 
 def _build_rank_periods(db: Session) -> list[dict[str, Any]]:
@@ -205,9 +220,21 @@ def page_yiyuan(
     )
 
 
-@router.get("/inclusion")
-def page_inclusion_redirect() -> RedirectResponse:
-    return RedirectResponse(url="/rank#inclusion", status_code=302)
+@router.get("/inclusion", response_class=HTMLResponse)
+def page_inclusion(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "inclusion.html",
+        _ctx(
+            request,
+            inclusion_groups=_inclusion_model_groups(),
+            tracked_slugs=[m["slug"] for m in TRACKED_MODELS],
+        ),
+    )
+
+
+@router.get("/inclusion/status", response_class=HTMLResponse)
+def page_inclusion_status(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse("inclusion_status.html", _ctx(request))
 
 
 @router.get("/report/{public_id}", response_class=HTMLResponse)
@@ -350,13 +377,20 @@ def page_admin(
         .limit(100)
         .all()
     )
+    relay_edit_list = [
+        {"relay": r, "rank_map": parse_rank_map_json(r.rank_models_json)}
+        for r in rels
+    ]
     return templates.TemplateResponse(
         "admin.html",
         _ctx(
             request,
             relay_rows=rels,
+            relay_edit_list=relay_edit_list,
             user_rows=urows,
             inc_rows=inc,
+            tracked_models_list=TRACKED_MODELS,
+            tracked_slugs=[m["slug"] for m in TRACKED_MODELS],
         ),
     )
 
@@ -416,7 +450,7 @@ def api_relay_matrix(
     window_hours: int | None = None,
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    """全站 站点×模型 矩阵 JSON（三目标线；数据来本库探测）。"""
+    """全站 站点×模型 矩阵 JSON（各目标线；数据来本库探测）。"""
     h = window_hours or settings.ranking_window_hours
     if h < 1 or h > 744:
         raise HTTPException(400, detail="window_hours 应在 1–744 之间")
@@ -430,7 +464,7 @@ def _kuma_service_status(
     model_matches: dict[str, bool],
     selected_slug: str = "opus-47",
 ) -> dict[str, Any]:
-    """对齐 Uptime Kuma 式状态：up / degraded / down + 三线摘要；标记当前选中模型。"""
+    """对齐 Uptime Kuma 式状态：up / degraded / down + 各目标线摘要；标记当前选中模型。"""
     st = "down"
     sc = getattr(res, "http_status", None)
     if getattr(res, "error", None) and sc is None:
@@ -446,7 +480,7 @@ def _kuma_service_status(
     total = len(TRACKED_MODELS)
     hit = sum(1 for m in TRACKED_MODELS if model_matches.get(m["slug"]))
     model_detail: list[dict[str, Any]] = []
-    for m in TRACKED_MODELS:  # 三条目标模型线
+    for m in TRACKED_MODELS:
         slug = m["slug"]
         model_detail.append(
             {
@@ -481,7 +515,7 @@ async def api_try_probe(
 ) -> JSONResponse:
     """
     在线检测：固定 GET `/v1/models`（与排行同源），
-    由 `model_slug` 指定「主评」目标线；在返回体中子串匹配三条目标线。
+    由 `model_slug` 指定「主评」目标线；在返回体中子串匹配全部已收录目标线。
     """
     _check_probe_rl(_client_ip(request))
     bu = (base_url or "").strip()
@@ -494,7 +528,7 @@ async def api_try_probe(
     msel = (model_slug or "opus-47").strip()
     tr = get_tracked_by_slug(msel)
     if tr is None:
-        raise HTTPException(400, detail="请从三条目标模型线中勾选其一")
+        raise HTTPException(400, detail="请从已收录的目标模型线中勾选其一")
     path = "/v1/models"
     key = api_key.strip() or None
     if key and len(key) > 4096:
@@ -544,19 +578,75 @@ async def api_try_probe(
 def api_inclusion(
     site_name: str = Form(...),
     site_url: str = Form(...),
-    contact: str = Form(""),
+    founded_date: str = Form(...),
+    signup_url: str = Form(...),
+    contact_person: str = Form(...),
+    contact: str = Form(...),
+    suggested_group: str = Form(""),
     remark: str = Form(""),
+    supported_models: list[str] | None = Form(None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
+    allowed = {m["slug"] for m in TRACKED_MODELS}
+    raw_models = list(supported_models) if supported_models is not None else []
+    models_clean = [x for x in raw_models if x in allowed]
+    try:
+        fd = date_cls.fromisoformat((founded_date or "").strip()[:10])
+    except ValueError as e:
+        raise HTTPException(400, detail="成立时间无效，请使用 YYYY-MM-DD") from e
     ir = InclusionRequest(
         site_name=site_name.strip()[:256],
         site_url=site_url.strip()[:1024],
+        founded_date=fd,
+        signup_url=(signup_url or "").strip()[:1024] or None,
+        contact_person=contact_person.strip()[:256] or None,
         contact=contact.strip()[:512] or None,
-        remark=remark[:4000] or None,
+        suggested_group=(suggested_group or "").strip()[:128] or None,
+        remark=(remark or "")[:4000] or None,
+        supported_models_json=json.dumps(models_clean, ensure_ascii=False),
+        status="pending",
     )
     db.add(ir)
     db.commit()
+    db.refresh(ir)
     return JSONResponse({"ok": True, "id": ir.id})
+
+
+@router.get("/api/inclusion/lookup")
+def api_inclusion_lookup(id: int, db: Session = Depends(get_db)) -> JSONResponse:
+    row = (
+        db.query(InclusionRequest).filter(InclusionRequest.id == id).one_or_none()
+    )
+    if row is None:
+        raise HTTPException(404, detail="未找到该申请编号")
+    return JSONResponse(
+        {
+            "id": row.id,
+            "site_name": row.site_name,
+            "status": row.status,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        }
+    )
+
+
+@router.patch("/api/admin/inclusion-requests/{req_id}")
+def admin_patch_inclusion(
+    request: Request,
+    req_id: int,
+    body: InclusionStatusUpdate,
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    u = _user_from_cookie(request)
+    if not u or not u.get("is_admin"):
+        raise HTTPException(403, detail="需要管理员")
+    row = (
+        db.query(InclusionRequest).filter(InclusionRequest.id == req_id).one_or_none()
+    )
+    if row is None:
+        raise HTTPException(404, detail="申请不存在")
+    row.status = body.status
+    db.commit()
+    return JSONResponse({"ok": True, "id": row.id, "status": row.status})
 
 
 @router.post("/api/auth/login")

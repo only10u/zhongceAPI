@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import threading
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
@@ -26,6 +27,7 @@ logging.basicConfig(
 log = logging.getLogger("relay_probe")
 settings = Settings()
 _WARNED_INSECURE = False
+_probe_lock = threading.Lock()
 
 
 def _admin_warned() -> None:
@@ -48,6 +50,8 @@ def _verify_admin(x_admin_token: str | None) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # 启动即跑一轮全站探测，避免「已启用站点有数、窗口内样本为 0」与后台未配置轮询时的脱节
+    asyncio.create_task(asyncio.to_thread(_probe_all_sync))
     if settings.check_interval_sec > 0:
         t = asyncio.create_task(_background_loop())
         try:
@@ -69,47 +73,56 @@ async def _background_loop() -> None:
 
 
 def _probe_all_sync() -> None:
-    db = SessionLocal()
-    try:
-        removed = delete_old_samples(db)
-        if removed:
-            log.info("pruned old samples: %s", removed)
-        relays = (
-            db.query(Relay)
-            .filter(Relay.enabled.is_(True))
-            .order_by(Relay.id)
-            .all()
-        )
-        for r in relays:
-            res = run_probe(
-                r.base_url,
-                r.check_path,
-                settings.http_timeout_sec,
-                r.api_key,
+    with _probe_lock:
+        db = SessionLocal()
+        try:
+            removed = delete_old_samples(db)
+            if removed:
+                log.info("pruned old samples: %s", removed)
+            relays = (
+                db.query(Relay)
+                .filter(Relay.enabled.is_(True))
+                .order_by(Relay.id)
+                .all()
             )
-            db.add(
-                ProbeSample(
-                    relay_id=r.id,
-                    ok=res.ok,
-                    latency_ms=res.latency_ms,
-                    http_status=res.http_status,
-                    error=res.error,
+            for r in relays:
+                res = run_probe(
+                    r.base_url,
+                    r.check_path,
+                    settings.http_timeout_sec,
+                    r.api_key,
                 )
-            )
-            add_model_samples_from_probe(db, r.id, res)
-            if res.ok:
-                log.info("probe ok id=%s name=%s latency_ms=%s", r.id, r.name, res.latency_ms)
-            else:
-                log.warning(
-                    "probe fail id=%s name=%s err=%s", r.id, r.name, res.error
+                db.add(
+                    ProbeSample(
+                        relay_id=r.id,
+                        ok=res.ok,
+                        latency_ms=res.latency_ms,
+                        http_status=res.http_status,
+                        error=res.error,
+                    )
                 )
-        delete_old_samples(db)
-        db.commit()
-    except Exception:  # noqa: BLE001
-        db.rollback()
-        log.exception("background probe failed")
-    finally:
-        db.close()
+                add_model_samples_from_probe(db, r.id, res)
+                if res.ok:
+                    log.info(
+                        "probe ok id=%s name=%s latency_ms=%s",
+                        r.id,
+                        r.name,
+                        res.latency_ms,
+                    )
+                else:
+                    log.warning(
+                        "probe fail id=%s name=%s err=%s",
+                        r.id,
+                        r.name,
+                        res.error,
+                    )
+            delete_old_samples(db)
+            db.commit()
+        except Exception:  # noqa: BLE001
+            db.rollback()
+            log.exception("background probe failed")
+        finally:
+            db.close()
 
 
 def _probe_one_sync(relay_id: int) -> tuple[ProbeResult, str | None]:
@@ -189,6 +202,7 @@ def _path_counts_for_traffic(path: str) -> bool:
         "/workspace",
         "/admin",
         "/inclusion",
+        "/inclusion/status",
     ):
         return True
     return path.startswith("/report/")

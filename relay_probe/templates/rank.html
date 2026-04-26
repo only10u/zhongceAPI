@@ -16,8 +16,8 @@
 
   <div class="rank-hero card-spotlight">
     <h1 class="h1-magic h1-rank gradient-text" data-i18n="rank_h1">中转站排行</h1>
-    <p class="rank-sub i18n-zh">多模型分榜、指标可对照。分<strong>日榜</strong>（近 24 小时）、<strong>周榜</strong>（近 168 小时）、<strong>月榜</strong>（近 720 小时）三套；每套仅含 <strong>Opus 4.7、Opus 4.6、Sonnet 4.6</strong> 三条分表与 1 份总榜。中测 v{{ version }}。下方每 <strong>8</strong> 秒与全站库对齐刷新。</p>
-    <p class="rank-sub i18n-en">Leaderboards: <strong>24h</strong>, <strong>7d (168h)</strong>, and <strong>30d (720h)</strong> — each with <strong>three</strong> model tables (Opus 4.7/4.6, Sonnet 4.6) plus one aggregate. v{{ version }} · every <strong>8</strong>s.</p>
+    <p class="rank-sub i18n-zh">多模型分榜、指标可对照。分<strong>日榜</strong>（近 24 小时）、<strong>周榜</strong>（近 168 小时）、<strong>月榜</strong>（近 720 小时）三套；每套含 <strong>六条</strong> 模型分表（Opus 4.7 / 4.6、Sonnet 4.6、GPT 5.5、GPT 5.4、Gemini 3.1 Pro）与 1 份总榜。中测 v{{ version }}。下方每 <strong>8</strong> 秒与全站库对齐刷新。</p>
+    <p class="rank-sub i18n-en">Leaderboards: <strong>24h</strong>, <strong>7d (168h)</strong>, and <strong>30d (720h)</strong> — each with <strong>six</strong> per-model tables (Claude, GPT 5.5/5.4, Gemini 3.1 Pro, etc.) plus one aggregate. v{{ version }} · every <strong>8</strong>s.</p>
   </div>
 
   <div class="rank-toolbar">
@@ -133,17 +133,11 @@
 
   <section class="inclusion-rank" id="inclusion">
     <h2 class="h2-magic" data-i18n="inc_h2">中转站收录</h2>
-    <p class="note i18n-zh" data-i18n="inc_hint2">在此提交申请，与 <a href="https://hvoy.ai/contact" target="_blank" rel="noopener">禾维申请页</a> 的字段习惯相近；需可探测的 Base 与（如需）由管理员在后台配置测账户。</p>
-    <p class="note i18n-en" data-i18n="inc_hint2_en">Public listing request; fields similar to <a href="https://hvoy.ai/contact" target="_blank" rel="noopener">Hvoy</a>. Admin will review.</p>
-    <div class="card magic-card inc-card">
-      <form id="f-inc" class="form two-col" autocomplete="off">
-        <label><span data-i18n="inc_name">站点名称</span> <input name="site_name" required placeholder="例：我的中转"/></label>
-        <label><span data-i18n="inc_url">站点 URL (Base)</span> <input name="site_url" type="url" required placeholder="https://api.xxx.com"/></label>
-        <label><span data-i18n="inc_contact">联系方式</span> <input name="contact" placeholder="微信/邮箱/QQ"/></label>
-        <label class="span2"><span data-i18n="inc_remark">备注</span> <textarea name="remark" rows="3" placeholder="可选：分组、模型说明等"></textarea></label>
-        <button class="btn primary span2" type="submit" data-i18n="inc_submit">提交申请</button>
-      </form>
-      <p id="imsg" class="msg"></p>
+    <p class="note i18n-zh" data-i18n="inc_hint_short">需登记站点信息、测试账户约定与申报模型线；完整表单与进度查询请前往收录专页。</p>
+    <p class="note i18n-en" data-i18n="inc_hint_short_en">Use the dedicated inclusion page for the full form and status lookup.</p>
+    <div class="card magic-card inc-card inc-card-cta">
+      <a class="btn btn-magic primary" href="/inclusion" data-i18n="inc_go_full">填写收录申请</a>
+      <a class="btn btn-ghost" href="/inclusion/status" data-i18n="inc_status_btn">查看申请状态</a>
     </div>
   </section>
 </div>

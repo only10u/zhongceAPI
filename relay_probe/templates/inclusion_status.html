@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}申请状态{% endblock %}
+{% block main %}
+<div class="inclusion-page inclusion-status-page">
+  <header class="inclusion-head">
+    <h1 class="h1-magic gradient-text" data-i18n="inc_status_h1">申请状态</h1>
+    <a class="btn btn-ghost" href="/inclusion" data-i18n="inc_back_form">返回申请表</a>
+  </header>
+  <div class="card magic-card inc-status-card">
+    <p class="small muted" data-i18n="inc_status_lead">提交成功后页面会显示申请编号；也可在此输入编号查询当前进度。</p>
+    <form id="f-inc-lookup" class="inc-lookup-form">
+      <label><span data-i18n="inc_q_id">申请编号</span>
+        <input name="id" type="number" min="1" step="1" required placeholder="例如：12" class="in-magic"/>
+      </label>
+      <button type="submit" class="btn btn-magic primary" data-i18n="inc_q_btn">查询</button>
+    </form>
+    <div id="inc-lookup-out" class="inc-lookup-out" hidden>
+      <p><strong data-i18n="inc_q_site">站点</strong>：<span id="inc-lookup-name">—</span></p>
+      <p><strong data-i18n="inc_q_status">状态</strong>：<span id="inc-lookup-status">—</span></p>
+      <p><strong data-i18n="inc_q_time">提交时间</strong>：<span id="inc-lookup-time">—</span></p>
+    </div>
+    <p id="inc-lookup-err" class="msg" hidden></p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var f = document.getElementById("f-inc-lookup");
+  var out = document.getElementById("inc-lookup-out");
+  var err = document.getElementById("inc-lookup-err");
+  if (!f) return;
+  var q0 = new URLSearchParams(location.search).get("id");
+  var inp0 = f.querySelector("input[name=id]");
+  if (q0 && inp0) inp0.value = q0;
+  f.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var fd = new FormData(f);
+    var id = fd.get("id");
+    if (!id) return;
+    err.hidden = true;
+    out.hidden = true;
+    fetch("/api/inclusion/lookup?id=" + encodeURIComponent(String(id)))
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j }; }); })
+      .then(function (_ref) {
+        if (!_ref.ok) {
+          err.textContent = (_ref.j && _ref.j.detail) || "未找到";
+          err.hidden = false;
+          return;
+        }
+        var d = _ref.j;
+        document.getElementById("inc-lookup-name").textContent = d.site_name || "—";
+        document.getElementById("inc-lookup-status").textContent = d.status || "—";
+        var t = d.created_at;
+        try {
+          t = t ? new Date(t).toLocaleString() : "—";
+        } catch (x) { t = d.created_at || "—"; }
+        document.getElementById("inc-lookup-time").textContent = t;
+        out.hidden = false;
+      })
+      .catch(function () {
+        err.textContent = "请求失败";
+        err.hidden = false;
+      });
+  });
+})();
+</script>
+{% endblock %}

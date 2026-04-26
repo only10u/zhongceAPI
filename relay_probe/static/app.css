@@ -578,6 +578,24 @@ h2 { font-size: 1.1rem; }
 @media (min-width: 700px) {
   .home-cost { padding: 1.75rem 2rem; }
 }
+.home-detect-rank {
+  padding: 1.5rem 1.75rem;
+}
+@media (min-width: 700px) {
+  .home-detect-rank {
+    padding: 1.75rem 2rem;
+  }
+}
+.home-detect-rank-wrap {
+  max-height: min(420px, 55vh);
+  overflow: auto;
+  margin-top: 0.5rem;
+  border-radius: 10px;
+}
+.home-detect-rank-table .td-run {
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
 .cost-inputs-4 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1187,3 +1205,150 @@ body.auth-modal-open .main:has(.auth-page-landing) { min-height: 0; }
   margin: 0.5rem 0 0;
 }
 .auth-surface[hidden] { display: none !important; }
+
+/* —— 收录专页 */
+.inclusion-page {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 2.5rem;
+}
+.inclusion-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.inc-notice {
+  padding: 1rem 1.25rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.65;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.06);
+}
+.inc-notice p { margin: 0.55rem 0; }
+.inc-notice p:first-child { margin-top: 0; }
+.inc-notice p:last-child { margin-bottom: 0; }
+.inc-form-card { padding: 1.25rem 1.5rem; margin-top: 1rem; }
+.inc-sec-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 1.2rem 0 0.55rem;
+  color: var(--fg);
+}
+.inc-sec-title:first-of-type { margin-top: 0; }
+.inc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+@media (max-width: 640px) {
+  .inc-grid { grid-template-columns: 1fr; }
+  .inc-span2 { grid-column: span 1 !important; }
+}
+.inc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.inc-field .req span,
+.inc-field span.req { color: var(--fg); }
+.inc-field .req::after { content: " *"; color: #f87171; font-weight: 800; }
+.inc-span2 { grid-column: span 2; }
+.inc-field textarea {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  background: var(--card);
+  color: var(--fg);
+}
+.inc-model-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.35rem;
+}
+.inc-model-brand {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+.inc-model-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.inc-cb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.38rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+.inc-cb input { accent-color: #10b981; }
+.inc-submit-row {
+  margin-top: 1.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.inc-card-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  align-items: center;
+}
+.inc-lookup-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin: 0.75rem 0;
+}
+.inc-lookup-form label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; }
+.inc-lookup-out { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--border); }
+.inclusion-status-page .inc-status-card { margin-top: 0.5rem; }
+.workspace-page .ws-live-ribbon {
+  max-width: 1100px;
+  margin: 1.25rem auto 0;
+  padding: 0 1.5rem;
+}
+.workspace-page .mt { margin-top: 1rem; }
+
+/* —— 管理：分线上架 */
+.rank-shelf-fieldset {
+  margin: 0.35rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px dashed var(--border);
+}
+.rank-shelf-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 0.45rem;
+  color: var(--fg);
+}
+.rank-shelf-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+}
+.rank-shelf-item { font-size: 0.8rem; }
+.admin-inc-wrap .data-table { font-size: 0.82rem; }
+.admin-inc-actions .btn-sm { margin: 0.1rem 0.2rem 0.1rem 0; }
+.td-ellipsis {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mono-sm { font-size: 0.78rem; font-variant-numeric: tabular-nums; }

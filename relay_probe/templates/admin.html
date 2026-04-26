@@ -65,7 +65,9 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
   </section>
 
   <div class="admin-relay-list">
-    {% for r in relay_rows %}
+    {% for item in relay_edit_list %}
+    {% set r = item.relay %}
+    {% set rank_map = item.rank_map %}
     <article class="card magic-card admin-relay-card" id="relay-{{ r.id }}" data-relay-id="{{ r.id }}">
       <h3 class="admin-relay-h3">
         #{{ r.id }} · {{ r.name }}
@@ -81,6 +83,14 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         <label><span>排序权值</span> <input name="rank_boost" type="number" value="{{ r.rank_boost }}" min="0"/></label>
         <label class="chkb"><input name="enabled" type="checkbox" value="1" {% if r.enabled %}checked{% endif %}/> <span>已启用探测</span></label>
         <label class="span2"><span>探测路径</span> <input name="check_path" type="text" value="{{ r.check_path }}" placeholder="/v1/models"/></label>
+        <div class="span2 rank-shelf-fieldset">
+          <div class="rank-shelf-label">排行分线（上架展示）</div>
+          <div class="rank-shelf-grid">
+            {% for m in tracked_models_list %}
+            <label class="chkb rank-shelf-item"><input type="checkbox" name="rank_on" value="{{ m.slug }}" {% if rank_map.get(m.slug, True) %}checked{% endif %}/> <span>{{ m.name_zh }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
         <label class="span2"><span>API Key</span> <input name="api_key" type="password" autocomplete="new-password" placeholder="留空不修改" /></label>
         <div class="span2 admin-relay-actions">
           <button type="submit" class="btn primary">保存</button>
@@ -123,12 +133,27 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
   </table>
   </div>
   <h2>收录申请</h2>
-  <div class="table-wrap table-magic">
+  <div class="table-wrap table-magic admin-inc-wrap">
     <table class="data-table data-table-lens">
-      <thead><tr><th>ID</th><th>名</th><th>URL</th><th>状态</th><th>时间</th></tr></thead>
+      <thead><tr><th>ID</th><th>站点</th><th>URL</th><th>成立</th><th>联系人</th><th>联络</th><th>模型申报</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
     <tbody>
     {% for q in inc_rows %}
-      <tr><td>{{ q.id }}</td><td>{{ q.site_name }}</td><td class="url">{{ q.site_url }}</td><td>{{ q.status }}</td><td>{{ q.created_at }}</td></tr>
+      <tr data-inc-id="{{ q.id }}">
+        <td>{{ q.id }}</td>
+        <td>{{ q.site_name }}</td>
+        <td class="url mono-sm">{{ q.site_url }}</td>
+        <td>{% if q.founded_date %}{{ q.founded_date }}{% else %}—{% endif %}</td>
+        <td>{{ q.contact_person or "—" }}</td>
+        <td class="td-ellipsis" title="{{ q.contact or '' }}">{{ q.contact or "—" }}</td>
+        <td class="mono-sm td-ellipsis" title="{{ q.supported_models_json or '' }}">{% if q.supported_models_json %}{{ q.supported_models_json }}{% else %}—{% endif %}</td>
+        <td class="inc-st-cell">{{ q.status }}</td>
+        <td class="mono-sm">{{ q.created_at }}</td>
+        <td class="admin-inc-actions">
+          <button type="button" class="btn btn-sm btn-magic inc-st" data-st="approved">通过</button>
+          <button type="button" class="btn btn-sm btn-ghost inc-st" data-st="rejected">拒绝</button>
+          <button type="button" class="btn btn-sm btn-ghost inc-st" data-st="pending">待审</button>
+        </td>
+      </tr>
     {% endfor %}
     </tbody>
   </table>
@@ -137,6 +162,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
 </div>
 {% endblock %}
 {% block scripts %}
+<script type="application/json" id="admin-tracked-slugs">{{ tracked_slugs | tojson }}</script>
 <script>
   (function () {
     var chartRef = null;
@@ -224,6 +250,16 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
       else { const n = parseFloat(dpn); if (!isNaN(n)) body.dilution_override = n; }
       const ak = (fd.get("api_key") || "").toString();
       if (ak.trim() !== "") body.api_key = ak.trim();
+      var slugEl = document.getElementById("admin-tracked-slugs");
+      var SLUGS = [];
+      try {
+        SLUGS = slugEl ? JSON.parse(slugEl.textContent || "[]") : [];
+      } catch (e) {}
+      body.rank_models = {};
+      SLUGS.forEach(function (slug) {
+        var cb = form.querySelector('input[name="rank_on"][value="' + slug + '"]');
+        body.rank_models[slug] = !!(cb && cb.checked);
+      });
       const r = await fetch("/api/admin/relays/" + rid, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -252,6 +288,31 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       var inp = el.querySelector("input[name=name]");
       if (inp) inp.focus();
+    });
+  });
+  document.querySelectorAll(".inc-st").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      var tr = btn.closest("tr");
+      if (!tr) return;
+      var id = tr.getAttribute("data-inc-id");
+      var st = btn.getAttribute("data-st");
+      if (!id || !st) return;
+      var r = await fetch("/api/admin/inclusion-requests/" + id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: st }),
+        credentials: "same-origin",
+      });
+      if (r.ok) {
+        var cell = tr.querySelector(".inc-st-cell");
+        if (cell) cell.textContent = st;
+        return;
+      }
+      try {
+        alert((await r.json()).detail || r.status);
+      } catch (e) {
+        alert(await r.text());
+      }
     });
   });
   document.getElementById("f-chpw").addEventListener("submit", async (e) => {

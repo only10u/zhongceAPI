@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}申请收录{% endblock %}
+{% block main %}
+<div class="inclusion-page">
+  <header class="inclusion-head">
+    <h1 class="h1-magic gradient-text">申请收录</h1>
+    <a class="btn btn-magic" href="/inclusion/status" data-i18n="inc_status_btn">查看申请状态</a>
+  </header>
+
+  <section class="inc-notice magic-card" aria-label="说明">
+    <p data-i18n="inc_notice_p1">中测为公开技术探测索引：<strong>收录与基础探测不收费</strong>，意在提供可复现的网关健康度参考，中立第三方视角。</p>
+    <p data-i18n="inc_notice_p2">全站数据由程序按固定路径定时请求、自动汇总；收录后如需对话级用量抽检，将使用<strong>单独配置的探测 Key</strong>（非人工登录你的账户）。</p>
+    <p data-i18n="inc_notice_p3">请提供<strong>可探测的测试账户</strong>信息（由管理员在后台录入），账户内需保留<strong>不少于 ¥100</strong> 可用额度，供目录与抽样请求消耗；测试额度<strong>仅用于技术探测</strong>，不作任何非探测用途。</p>
+    <p data-i18n="inc_notice_p4"><strong>测试站密码要求（与常见安全基线一致）</strong>：长度 &gt; 8；含英文大写与小写、数字与特殊字符，避免与正式主账号同口令。</p>
+    <p data-i18n="inc_notice_p5">资料齐全时，一般在 <strong>1–2 个工作日</strong>内完成审核与上线探测；高峰期可能顺延，以站内状态为准。</p>
+  </section>
+
+  <div class="card magic-card inc-form-card">
+    <form id="f-inc" class="inc-form" autocomplete="off">
+      <h2 class="inc-sec-title" data-i18n="inc_sec_site">站点信息</h2>
+      <div class="inc-grid">
+        <label class="inc-field"><span class="req" data-i18n="inc_site_name">站点名称</span>
+          <input name="site_name" required maxlength="256" placeholder="例如：OpenRouter" class="in-magic"/>
+        </label>
+        <label class="inc-field"><span class="req" data-i18n="inc_site_url">站点 URL</span>
+          <input name="site_url" type="url" required placeholder="https://example.com" class="in-magic"/>
+        </label>
+        <label class="inc-field"><span class="req" data-i18n="inc_founded">成立时间</span>
+          <input name="founded_date" type="date" required class="in-magic"/>
+        </label>
+        <label class="inc-field"><span class="req" data-i18n="inc_signup">注册 URL</span>
+          <input name="signup_url" type="url" required placeholder="https://example.com/signup" class="in-magic"/>
+        </label>
+      </div>
+
+      <h2 class="inc-sec-title" data-i18n="inc_sec_contact">联系信息</h2>
+      <div class="inc-grid">
+        <label class="inc-field"><span class="req" data-i18n="inc_person">联系人</span>
+          <input name="contact_person" required maxlength="256" placeholder="姓名或昵称" class="in-magic"/>
+        </label>
+        <label class="inc-field"><span class="req" data-i18n="inc_contact">联系方式</span>
+          <input name="contact" required maxlength="512" placeholder="微信 / 手机号" class="in-magic"/>
+        </label>
+      </div>
+
+      <h2 class="inc-sec-title" data-i18n="inc_sec_other">其他</h2>
+      <div class="inc-grid">
+        <label class="inc-field"><span data-i18n="inc_suggest_group">建议分组</span>
+          <input name="suggested_group" maxlength="128" placeholder="您建议的分组" class="in-magic"/>
+        </label>
+        <label class="inc-field inc-span2"><span data-i18n="inc_remark">备注</span>
+          <textarea name="remark" rows="3" maxlength="4000" placeholder="补充信息（选填）"></textarea>
+        </label>
+      </div>
+
+      <h2 class="inc-sec-title" data-i18n="inc_sec_models">支持的模型（申报）</h2>
+      <p class="small muted" data-i18n="inc_models_hint">勾选贵站实际可提供的线路，便于审核侧对照目录；与中测探测目标线对齐。</p>
+      <div class="inc-model-groups">
+        {% for label, models in inclusion_groups %}
+        <div class="inc-model-group">
+          <div class="inc-model-brand">{{ label }}</div>
+          <div class="inc-model-chips">
+            {% for m in models %}
+            <label class="inc-cb">
+              <input type="checkbox" name="supported_models" value="{{ m.slug }}"/>
+              <span>{{ m.name_zh }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="inc-submit-row">
+        <button class="btn btn-magic primary" type="submit" data-i18n="inc_submit">提交申请</button>
+        <p id="imsg" class="msg" role="status"></p>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/live.js" defer></script>
+{% endblock %}

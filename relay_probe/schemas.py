@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -25,6 +27,12 @@ class RelayUpdate(BaseModel):
     site_price: str | None = None
     dilution_label: str | None = Field(default=None, max_length=64)
     dilution_override: float | None = Field(default=None, ge=0, le=100)
+    # 各模型线在排行中是否上架（未列出的 slug 保持默认 True）
+    rank_models: dict[str, bool] | None = None
+
+
+class InclusionStatusUpdate(BaseModel):
+    status: Literal["pending", "approved", "rejected"]
 
 
 class Message(BaseModel):

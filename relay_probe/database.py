@@ -48,10 +48,42 @@ def _ensure_relay_columns() -> None:
                 names.add(col)
 
 
+def _ensure_inclusion_and_rank_json_columns() -> None:
+    if not str(settings.database_url).startswith("sqlite"):
+        return
+    relay_alters = [
+        (
+            "rank_models_json",
+            "ALTER TABLE relays ADD COLUMN rank_models_json TEXT",
+        ),
+    ]
+    inc_alters = [
+        ("founded_date", "ALTER TABLE inclusion_requests ADD COLUMN founded_date DATE"),
+        ("signup_url", "ALTER TABLE inclusion_requests ADD COLUMN signup_url VARCHAR(1024)"),
+        ("contact_person", "ALTER TABLE inclusion_requests ADD COLUMN contact_person VARCHAR(256)"),
+        ("suggested_group", "ALTER TABLE inclusion_requests ADD COLUMN suggested_group VARCHAR(128)"),
+        ("supported_models_json", "ALTER TABLE inclusion_requests ADD COLUMN supported_models_json TEXT"),
+    ]
+    with engine.begin() as conn:
+        r = conn.execute(text("PRAGMA table_info(relays)"))
+        rnames = {row[1] for row in r.all()}
+        for col, ddl in relay_alters:
+            if col not in rnames:
+                conn.execute(text(ddl))
+                rnames.add(col)
+        r2 = conn.execute(text("PRAGMA table_info(inclusion_requests)"))
+        inames = {row[1] for row in r2.all()}
+        for col, ddl in inc_alters:
+            if col not in inames:
+                conn.execute(text(ddl))
+                inames.add(col)
+
+
 def init_db() -> None:
     settings.data_path.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     _ensure_relay_columns()
+    _ensure_inclusion_and_rank_json_columns()
     from relay_probe.db_bootstrap import ensure_admin_user, import_seed_sites_from_json
 
     ensure_admin_user()

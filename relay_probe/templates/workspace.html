@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}工作台{% endblock %}
 {% block main %}
-<div class="workspace-page">
+<div class="workspace-page" id="workspace-page-root">
   <div class="card magic-card">
     <h2 data-i18n="ws_h2">个人工作台</h2>
     <p class="i18n-zh" data-i18n="ws_p1">以下为与全站相同数据源的实时摘要（每 10 秒更新）。可前往排行或首页使用在线检测。</p>
@@ -9,12 +9,28 @@
     <div class="ws-actions">
       <a class="btn primary" href="/rank">排名</a>
       <a class="btn" href="/#home-detector">在线检测</a>
-      <a class="btn" href="/rank#inclusion" data-i18n="home_cta2">申请收录</a>
+      <a class="btn" href="/inclusion" data-i18n="nav_inclusion">申请收录</a>
     </div>
   </div>
+
+  <section class="section-block home-live-ribbon ws-live-ribbon" id="ws-stats-bar" aria-live="polite">
+    <div class="live-ribbon-inner">
+      <span class="live-dot"></span>
+      <span class="i18n-zh" data-i18n="home_live_ribbon">全站数据实时刷新中</span>
+      <span class="i18n-en" data-i18n="home_live_ribbon_en">Live</span>
+      <time id="ws-stat-time" class="stat-time">—</time>
+    </div>
+    <div class="stat-badges">
+      <div class="stat-pill" data-i18n-title="stat_enabled_tip" title=""><span class="n" id="ws-stat-enabled">0</span><span class="l" data-i18n="stat_enabled">已启用站点</span></div>
+      <div class="stat-pill" data-i18n-title="stat_samples_tip" title=""><span class="n" id="ws-stat-samples">0</span><span class="l" data-i18n="stat_samples">窗口内探测次数</span></div>
+      <div class="stat-pill"><span class="l" data-i18n="stat_window">统计窗口</span> <span class="n" id="ws-stat-window">24</span> h</div>
+    </div>
+  </section>
+
   <div class="card magic-card mt">
     <h3 class="h2-magic" data-i18n="home_broadcast_h2">全站监测摘要</h3>
-    <p class="small muted" id="ws-updated">—</p>
+    <p class="small muted" data-i18n="home_broadcast_p">与排行同一统计窗口，每 10 秒拉取。</p>
+    <p class="small muted mono-sm" id="ws-updated">—</p>
     <div class="table-wrap table-magic">
       <table class="data-table data-table-lens">
         <thead>
@@ -34,47 +50,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script>
-(function () {
-  const tb = document.getElementById("ws-live-tbody");
-  const tu = document.getElementById("ws-updated");
-  function poll() {
-    fetch("/api/home-stats")
-      .then((r) => r.json())
-      .then((d) => {
-        if (tu) tu.textContent = d.updated_at || "—";
-        if (!tb) return;
-        const leg = d.legacy_top || [];
-        tb.textContent = "";
-        (leg || []).slice(0, 12).forEach((x) => {
-          const tr = document.createElement("tr");
-          tr.className = "row-flash";
-          const rate = x.samples_in_window && x.success_rate != null
-            ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%" : "—";
-          const lat = x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
-          tr.innerHTML = "<td class=\"td-rank\"><span class=\"rank-pill\">#" + x.rank + "</span></td><td class=\"td-name\"></td><td class=\"td-metric\">" + rate + "</td><td class=\"td-metric\">" + lat + "</td>";
-          var tdn = tr.querySelector(".td-name");
-          if (x.base_url) {
-            var a = document.createElement("a");
-            a.className = "site-link";
-            a.href = x.base_url;
-            a.target = "_blank";
-            a.rel = "noopener noreferrer";
-            a.textContent = x.name;
-            tdn.appendChild(a);
-          } else tdn.textContent = x.name;
-          tb.appendChild(tr);
-        });
-        if (leg.length === 0) {
-          const tr = document.createElement("tr");
-          tr.innerHTML = '<td colspan="4" class="muted">—</td>';
-          tb.appendChild(tr);
-        }
-      })
-      .catch(function () {});
-  }
-  poll();
-  setInterval(poll, 10000);
-})();
-</script>
+<script src="/static/live.js" defer></script>
 {% endblock %}

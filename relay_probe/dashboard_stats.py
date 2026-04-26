@@ -11,6 +11,7 @@ from relay_probe.config import Settings
 from relay_probe.model_catalog import TRACKED_MODELS
 from relay_probe.models import ModelProbeSample, ProbeSample, Relay
 from relay_probe.ranking import build_ranking_rows
+from relay_probe.relay_rank_shelf import relay_rank_enabled
 
 settings = Settings()
 _UPTIME_SLOTS = 12
@@ -109,6 +110,8 @@ def build_per_model_table(
     )
     out: list[dict[str, Any]] = []
     for r in relays:
+        if not relay_rank_enabled(r, model_slug):
+            continue
         st = stat.get(
             r.id,
             {
@@ -202,9 +205,11 @@ def build_home_stats(
     """首页实时看板：与全站同一统计窗口的聚合与分模型快照。"""
     h = window_hours if window_hours is not None else settings.ranking_window_hours
     since = window_start_utc(h)
+    # 与「已启用站点」对齐：只计当前仍启用中转在窗口内的目录探测样本（不含已禁用站残留）
     n_samp = (
         db.query(func.count(ProbeSample.id))
-        .filter(ProbeSample.created_at >= since)
+        .join(Relay, ProbeSample.relay_id == Relay.id)
+        .filter(ProbeSample.created_at >= since, Relay.enabled.is_(True))
         .scalar()
     ) or 0
     n_relays = int(db.query(func.count(Relay.id)).scalar() or 0)
@@ -255,6 +260,34 @@ def build_relay_model_matrix(
                 "status": row.get("status"),
                 "status_class": row.get("status_class") or "st-muted",
             }
+    rel_list = (
+        db.query(Relay)
+        .filter(Relay.enabled.is_(True))
+        .order_by(Relay.id)
+        .all()
+    )
+    for r in rel_list:
+        rid = int(r.id)
+        if rid not in relay_cells:
+            order.append(rid)
+            relay_cells[rid] = {
+                "relay_id": rid,
+                "name": r.name,
+                "base_url": r.base_url,
+                "group": r.group_name or "—",
+                "by_slug": {},
+            }
+        for m in TRACKED_MODELS:
+            slug = m["slug"]
+            if slug in relay_cells[rid]["by_slug"]:
+                continue
+            if not relay_rank_enabled(r, slug):
+                relay_cells[rid]["by_slug"][slug] = {
+                    "online_rate_pct": None,
+                    "samples": 0,
+                    "status": "未上榜",
+                    "status_class": "st-muted",
+                }
     return {
         "window_hours": h,
         "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),

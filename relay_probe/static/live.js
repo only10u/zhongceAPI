@@ -3,7 +3,14 @@
  * 排行页：轮询 dashboard
  */
 (function () {
-  const MODEL_SLUGS = ["opus-47", "opus-46", "sonnet-46"];
+  const MODEL_SLUGS = [
+    "opus-47",
+    "opus-46",
+    "sonnet-46",
+    "gpt-55",
+    "gpt-54",
+    "gemini-31-pro",
+  ];
   const LS_LAT = "zhongce_probe_lat_v1";
   const chartState = { bar: null, doughnut: null, line: null };
   var lastProbeSnapshot = null;
@@ -183,6 +190,68 @@
         });
     };
     buildUptimeBarHost();
+    poll();
+    setInterval(poll, 10000);
+  }
+
+  // —— 工作台：与首页同源 home-stats，仅 DOM id 不同
+  function initWorkspaceBroadcast() {
+    var root = document.getElementById("workspace-page-root");
+    if (!root) return;
+    var poll = function () {
+      fetch("/api/home-stats")
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (d) {
+          setText("ws-stat-enabled", String(d.relays_enabled ?? 0));
+          setText("ws-stat-samples", String(d.probe_samples_in_window ?? 0));
+          if (d.window_hours != null) setText("ws-stat-window", String(d.window_hours));
+          setText("ws-stat-time", fmtTime(d.updated_at));
+          setText("ws-updated", fmtTime(d.updated_at));
+          var leg = d.legacy_top || [];
+          var tb = document.getElementById("ws-live-tbody");
+          if (!tb) return;
+          tb.textContent = "";
+          if (leg.length === 0) {
+            var tr = document.createElement("tr");
+            tr.innerHTML = '<td colspan="4" class="muted">—</td>';
+            tb.appendChild(tr);
+            return;
+          }
+          leg.slice(0, 12).forEach(function (x) {
+            var tr = document.createElement("tr");
+            tr.className = "row-flash";
+            var rate =
+              x.samples_in_window && x.success_rate != null
+                ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%"
+                : "—";
+            var lat = x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
+            tr.innerHTML =
+              '<td class="td-rank"><span class="rank-pill">#' +
+              x.rank +
+              '</span></td><td class="td-name"></td><td class="td-metric">' +
+              rate +
+              '</td><td class="td-metric">' +
+              lat +
+              "</td>";
+            var tdn = tr.querySelector(".td-name");
+            if (x.base_url) {
+              var a = document.createElement("a");
+              a.className = "site-link";
+              a.href = x.base_url;
+              a.target = "_blank";
+              a.rel = "noopener noreferrer";
+              a.textContent = x.name || "—";
+              tdn.appendChild(a);
+            } else {
+              tdn.textContent = x.name || "—";
+            }
+            tb.appendChild(tr);
+          });
+        })
+        .catch(function () {});
+    };
     poll();
     setInterval(poll, 10000);
   }
@@ -453,7 +522,12 @@
             var line = "状态 " + (svc.status || "—");
             if (j.http_status != null) line += " · HTTP " + j.http_status;
             if (j.latency_ms != null) line += " · " + j.latency_ms + " ms";
-            if (svc.model_hits != null) line += " · 三线 " + svc.model_hits + "/" + (svc.model_tracked || 3);
+            if (svc.model_hits != null)
+              line +=
+                " · 目标线 " +
+                svc.model_hits +
+                "/" +
+                (svc.model_tracked != null ? svc.model_tracked : MODEL_SLUGS.length);
             setText("probe-svc-line", line);
             pill.className = "probe-kuma-pill kuma-" + (svc.status || "down");
           }
@@ -629,7 +703,12 @@
         body: new FormData(f),
       });
       if (r.ok) {
-        if (imsg) imsg.textContent = "已提交，ID " + (await r.json()).id;
+        const j = await r.json();
+        if (imsg)
+          imsg.textContent =
+            "已提交，编号 " +
+            j.id +
+            "。请到「查看申请状态」页输入编号查询进度。";
         f.reset();
       } else if (imsg) imsg.textContent = await r.text();
     });
@@ -797,6 +876,76 @@
     setz("home-cost-v-final-en", fmtCost(finalYuan));
   }
 
+  const HOME_DETECT_RANK_SLUG = "opus-47";
+  const HOME_DETECT_RANK_LIMIT = 15;
+
+  function initHomeDetectRank() {
+    var tb = document.getElementById("home-detect-rank-tbody");
+    if (!tb) return;
+    var poll = function () {
+      fetch("/api/dashboard?window_hours=24")
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (d) {
+          setText("home-detect-rank-updated", fmtTime(d.updated_at));
+          var rows = (d.by_model && d.by_model[HOME_DETECT_RANK_SLUG]) || [];
+          tb.textContent = "";
+          if (!rows.length) {
+            var tr0 = el("tr");
+            var td0 = el("td", "muted", "暂无数据");
+            td0.colSpan = 5;
+            tr0.appendChild(td0);
+            tb.appendChild(tr0);
+            return;
+          }
+          rows.slice(0, HOME_DETECT_RANK_LIMIT).forEach(function (row) {
+            var tr = el("tr", "row-flash");
+            tr.appendChild(
+              (function () {
+                var td = el("td", "td-rank");
+                td.appendChild(el("span", "rank-pill", "#" + row.rank));
+                return td;
+              })()
+            );
+            var tdN = el("td", "td-name");
+            if (row.base_url) {
+              var a = document.createElement("a");
+              a.className = "site-link";
+              a.href = row.base_url;
+              a.target = "_blank";
+              a.rel = "noopener noreferrer";
+              a.textContent = row.name || "—";
+              tdN.appendChild(a);
+            } else {
+              tdN.textContent = row.name || "—";
+            }
+            tr.appendChild(tdN);
+            var online =
+              row.samples && typeof row.online_rate_pct === "number"
+                ? row.online_rate_pct + "%"
+                : "—";
+            tr.appendChild(el("td", "td-metric", online));
+            var lat = row.avg_latency_ms != null ? String(row.avg_latency_ms) : "—";
+            tr.appendChild(el("td", "td-metric td-lat", lat));
+            var tdSt = el("td", "td-run");
+            tdSt.appendChild(
+              el(
+                "span",
+                "run-badge " + (row.status_class || "st-muted"),
+                String(row.status || "—")
+              )
+            );
+            tr.appendChild(tdSt);
+            tb.appendChild(tr);
+          });
+        })
+        .catch(function () {});
+    };
+    poll();
+    setInterval(poll, 12000);
+  }
+
   function initHomeCostCalc() {
     var btn = document.getElementById("home-cost-btn");
     if (!btn) return;
@@ -819,11 +968,13 @@
   }
 
   function go() {
+    initWorkspaceBroadcast();
     initHomeBroadcast();
     initHvoyCards();
     initHomeProbe();
     initProbeShare();
     initHomeCostCalc();
+    initHomeDetectRank();
     initMatrix();
     initRankTabs();
     initRankPoll();

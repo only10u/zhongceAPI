@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     # 多中转：数据目录（相对项目根）
     data_dir: str = Field(default="data")
     http_timeout_sec: float = Field(default=15.0, ge=1.0, le=120.0)
-    # 0 = 不后台轮询；>0 为每轮「全部启用中转」探完后的休眠秒数
-    check_interval_sec: int = Field(default=0, ge=0)
+    # 0 = 不后台轮询（仍会启动时探测一轮）；>0 为每轮「全部启用中转」探完后的休眠秒数
+    check_interval_sec: int = Field(default=120, ge=0)
     # 排名统计窗口（API 可单独指定更大窗口，如日/周/月榜用至 720h）
     ranking_window_hours: int = Field(default=24, ge=1, le=744)
     # 逗号分隔的 base_url（会规范化：去尾 /、小写），在排名中固定先于其它条目；不改变真实探测结果

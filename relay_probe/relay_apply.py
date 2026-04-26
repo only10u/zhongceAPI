@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from relay_probe.models import Relay
+from relay_probe.relay_rank_shelf import default_rank_map, dumps_rank_map
 from relay_probe.schemas import RelayUpdate
 
 
@@ -32,3 +33,9 @@ def apply_relay_update(r: Relay, body: RelayUpdate) -> None:
         r.dilution_label = (v or "").strip() or None
     if "dilution_override" in d:
         r.dilution_override = d["dilution_override"]
+    if "rank_models" in d and d["rank_models"] is not None:
+        merged = default_rank_map()
+        for k, v in d["rank_models"].items():
+            if k in merged:
+                merged[k] = bool(v)
+        r.rank_models_json = dumps_rank_map(merged)
