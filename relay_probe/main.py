@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from relay_probe import __version__
@@ -231,6 +231,12 @@ app = FastAPI(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.head("/health")
+def health_head() -> Response:
+    """供 curl -I / 监控 HEAD 探测，避免 405。"""
+    return Response(status_code=200)
 
 
 @app.get("/")
