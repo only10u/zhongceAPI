@@ -1,0 +1,21 @@
+[Unit]
+Description=API relay probe (OpenAI-compatible health check)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 与 clone 后目录属主一致；专用户时改为 relay 并 chown
+User=root
+Group=root
+WorkingDirectory=/opt/relay-probe
+Environment=PATH=/opt/relay-probe/.venv/bin
+ExecStart=/opt/relay-probe/.venv/bin/uvicorn relay_probe.main:app --host 0.0.0.0 --port 8765
+Restart=on-failure
+RestartSec=5
+
+# Hardening (optional, adjust if you change paths)
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
