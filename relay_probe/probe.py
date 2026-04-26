@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from relay_probe.config import Settings
+from relay_probe.config import check_url_for
 
 
 @dataclass
@@ -16,25 +16,32 @@ class ProbeResult:
     body_preview: str | None
 
 
-def run_probe(s: Settings) -> ProbeResult:
-    if not s.relay_base_url:
+def run_probe(
+    base_url: str,
+    check_path: str,
+    http_timeout_sec: float,
+    api_key: str | None = None,
+) -> ProbeResult:
+    b = (base_url or "").strip()
+    if not b:
         return ProbeResult(
             ok=False,
             latency_ms=None,
             http_status=None,
-            error="RELAY_BASE_URL 未配置",
+            error="base_url 为空",
             body_preview=None,
         )
-
+    path = (check_path or "/v1/models").strip() or "/v1/models"
+    url = check_url_for(b, path)
     headers: dict[str, str] = {}
-    if s.relay_api_key:
-        headers["Authorization"] = f"Bearer {s.relay_api_key}"
+    if api_key and api_key.strip():
+        headers["Authorization"] = f"Bearer {api_key.strip()}"
 
     t0 = time.perf_counter()
     try:
-        with httpx.Client(timeout=s.http_timeout_sec) as client:
-            r = client.get(s.check_url, headers=headers)
-    except Exception as e:  # noqa: BLE001 — surface any transport error
+        with httpx.Client(timeout=http_timeout_sec) as client:
+            r = client.get(url, headers=headers)
+    except Exception as e:  # noqa: BLE001
         return ProbeResult(
             ok=False,
             latency_ms=round((time.perf_counter() - t0) * 1000, 2),
@@ -56,5 +63,4 @@ def run_probe(s: Settings) -> ProbeResult:
 
 
 def result_to_dict(r: ProbeResult) -> dict[str, Any]:
-    d = asdict(r)
-    return d
+    return asdict(r)
