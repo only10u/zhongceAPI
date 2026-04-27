@@ -168,11 +168,14 @@ def _user_from_cookie(request: Request) -> dict | None:
 def _ctx(request: Request, **extra) -> dict:
     u = _user_from_cookie(request)
     o = (settings.public_origin or "").strip()
+    av = (settings.static_asset_version or "").strip()
+    static_q = f"?v={av}" if av else ""
     return {
         "request": request,
         "user": u,
         "version": __version__,
         "site_url": o,
+        "static_q": static_q,
         **extra,
     }
 

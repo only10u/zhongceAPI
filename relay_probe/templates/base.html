@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/static/app.css"/>
+  <link rel="stylesheet" href="/static/app.css{{ static_q }}"/>
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -128,7 +128,7 @@
   <footer class="foot">
     <span data-i18n="foot_copy">中测</span>
   </footer>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js{{ static_q }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     init_admin_password: str = Field(default="")
     # 是否开放自助注册
     allow_register: bool = Field(default=True)
+    # 静态资源 ?v=… 防缓存（读环境变量 STATIC_ASSET_VERSION；部署拉代码后未刷新 UI 时可设日期或短 commit）
+    static_asset_version: str = Field(default="")
 
     @property
     def data_path(self) -> Path:
