@@ -4,7 +4,7 @@
 <div class="yiyuan-page">
   <section class="yiyuan-hero card-spotlight">
     <h1 class="h1-magic gradient-text">一元模型</h1>
-    <p class="yiyuan-lead">用统一公式，把「充值套路、倍率、官方标价」还原成<strong>每百万 Token 实付人民币</strong>，并与本库已收录站点对照。</p>
+    <p class="yiyuan-lead">用统一公式，把「充值套路、倍率、官方标价」还原成<strong>1 元人民币大约能买多少枚 Token</strong>（由实付单价换算），并与本库已收录站点对照。</p>
   </section>
 
   <section class="yiyuan-formula magic-card">
@@ -30,10 +30,10 @@
       <p class="example">例：官方 5 美金/M、站长 2 倍 → 每百万扣 10 美金等价的额度。</p>
     </article>
     <article class="step-card magic-card">
-      <h3>第三步：实付人民币（元 / 百万 Token）</h3>
-      <p>把「每百万扣多少额度」与「1 元能买多少额度」相除，得到从兜里掏的<strong>人民币</strong>。</p>
-      <p class="mono-block">实付元/百万 = 实际消耗额度（每百万）÷ 1 元购买力 =（官方美金单价 × 站长倍率 × 充值人民币）÷ 充值所得额度</p>
-      <p class="example">大白话：买 100 万个 Token，相当于掏了多少<strong>真人民币</strong>。</p>
+      <h3>第三步：1 元能买多少 Token（结果展示口径）</h3>
+      <p>先按上式得到<strong>实付约多少元 / 百万 Token</strong>，再换算：<strong>1 元能购买的 Token 枚数 = 1 000 000 ÷（元/百万 Token）</strong>。</p>
+      <p class="mono-block">实付元/百万 =（官方美金单价 × 站长倍率 × 充值人民币）÷ 充值所得额度；&nbsp; tokens/元 = 1 000 000 ÷ 实付元/百万</p>
+      <p class="example">大白话：按当前充值活动与标价，<strong>1 元人民币大约能换成多少 Token</strong>（结果为近似整数枚数）。</p>
     </article>
   </section>
 
@@ -50,7 +50,12 @@
     <div class="calc-out" id="yiyuan-out" aria-live="polite">
       <p><strong>1 元购买力</strong>（额度/元）= <span id="yiyuan-v-purchase">—</span></p>
       <p><strong>每百万 Token 消耗额度</strong>（与标价同口径）= <span id="yiyuan-v-consume">—</span></p>
-      <p class="result-main"><strong>实付约</strong> <span id="yiyuan-v-final">—</span> <strong>元 / 百万 Token</strong></p>
+      <p class="result-main yiyuan-result-main">
+        <strong>1 元可购买约</strong>
+        <span id="yiyuan-v-tokens" class="yiyuan-token-num">—</span>
+        <strong>枚 Token</strong>
+      </p>
+      <p class="small muted yiyuan-result-ref">约合实付 <span id="yiyuan-v-yuan-per-m">—</span> 元 / 百万 Token（换算依据）</p>
     </div>
   </section>
 

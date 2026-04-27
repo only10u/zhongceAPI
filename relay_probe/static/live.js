@@ -1297,6 +1297,11 @@
     return n.toFixed(4);
   }
 
+  function fmtTokensPerYuan(n) {
+    if (n == null || !isFinite(n) || n <= 0) return "—";
+    return Math.round(n).toLocaleString("zh-CN");
+  }
+
   function doHomeCostCalc() {
     var pUsd = parseFloat(
       (document.getElementById("home-cost-p-usd") || {}).value
@@ -1315,8 +1320,10 @@
       setz("home-cost-v-purchase-en", "—");
       setz("home-cost-v-consume-zh", "—");
       setz("home-cost-v-consume-en", "—");
-      setz("home-cost-v-final-zh", "—");
-      setz("home-cost-v-final-en", "—");
+      setz("home-cost-v-tokens-zh", "—");
+      setz("home-cost-v-tokens-en", "—");
+      setz("home-cost-v-yuanm-zh", "—");
+      setz("home-cost-v-yuanm-en", "—");
       return;
     }
     var purchasePerYuan = credit / rmb;
@@ -1331,8 +1338,10 @@
     if (!(pUsd >= 0) || !(mult >= 0)) {
       setz("home-cost-v-consume-zh", "—");
       setz("home-cost-v-consume-en", "—");
-      setz("home-cost-v-final-zh", "—");
-      setz("home-cost-v-final-en", "—");
+      setz("home-cost-v-tokens-zh", "—");
+      setz("home-cost-v-tokens-en", "—");
+      setz("home-cost-v-yuanm-zh", "—");
+      setz("home-cost-v-yuanm-en", "—");
       return;
     }
     var consumePerM = pUsd * mult;
@@ -1344,9 +1353,13 @@
       "home-cost-v-consume-en",
       fmtCost(consumePerM) + " (USD/M × mult)"
     );
-    var finalYuan = consumePerM / purchasePerYuan;
-    setz("home-cost-v-final-zh", fmtCost(finalYuan));
-    setz("home-cost-v-final-en", fmtCost(finalYuan));
+    var finalYuanPerM = consumePerM / purchasePerYuan;
+    var tokensPerOneYuan =
+      finalYuanPerM > 0 ? 1e6 / finalYuanPerM : NaN;
+    setz("home-cost-v-tokens-zh", fmtTokensPerYuan(tokensPerOneYuan));
+    setz("home-cost-v-tokens-en", fmtTokensPerYuan(tokensPerOneYuan));
+    setz("home-cost-v-yuanm-zh", fmtCost(finalYuanPerM));
+    setz("home-cost-v-yuanm-en", fmtCost(finalYuanPerM));
   }
 
   const HOME_DETECT_RANK_SLUG = "opus-47";

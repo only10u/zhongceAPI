@@ -163,12 +163,12 @@
       probe_banner_sub: "试探测不保存你的 Key 与业务对话。为保障账户安全，建议优先使用测试专用 Key。我们重视你的隐私，可在合规场景下放心使用。",
       probe_banner_sub_en: "Probes do not store your key or chat content. Prefer a test-only key. We care about your privacy and security.",
       cost_h2: "成本计算",
-      cost_sec: "实付单价试算",
+      cost_sec: "1 元购 Token 试算",
       cost_link_formula: "公式与拆解",
       cost_hint:
-        "填写该站的官方美金单价、倍率、充值活动，试算实付约多少元人民币/百万 Token。与「一元模型」页同一公式。",
+        "填写该站的官方美金单价、倍率、充值活动，试算 1 元大约能购买多少枚 Token。与「一元模型」页同一公式。",
       cost_hint_en:
-        "Enter USD/M, multiplier, top-up deal; estimate CNY per million tokens. Same formula as the ¥/token page.",
+        "Enter USD/M, multiplier, top-up; estimate tokens per 1 CNY. Same formula as the ¥/token page.",
       cost_p_usd: "官方美金单价（$/百万 Token）",
       cost_mult: "站长倍率",
       cost_rmb: "充值人民币（元）",
@@ -348,12 +348,12 @@
       probe_banner_sub: "Probes do not store your key or chat content. Prefer a test-only key. We care about your privacy and security.",
       probe_banner_sub_en: "Probes do not store your key or chat content. Prefer a test-only key.",
       cost_h2: "Cost estimate",
-      cost_sec: "CNY / M token estimate",
+      cost_sec: "Tokens per 1 CNY",
       cost_link_formula: "Formula",
       cost_hint:
-        "Enter USD per million, multiplier, and your top-up. Estimates CNY per million output tokens. Same as the ¥/token page.",
+        "Enter USD/M, multiplier, and top-up credits. Estimates how many tokens 1 CNY buys. Same as the ¥/token page.",
       cost_hint_en:
-        "Same as above. Numbers stay in your browser.",
+        "Same formula. Numbers stay in your browser.",
       cost_p_usd: "Official USD / M tokens",
       cost_mult: "Provider multiplier",
       cost_rmb: "Top-up CNY (¥)",

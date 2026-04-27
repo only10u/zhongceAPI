@@ -1,5 +1,5 @@
 /**
- * 一元模型页：实付 元/百万Token 计算器
+ * 一元模型页：1 元可购买多少 Token（由实付 ¥/百万 Token 换算）
  */
 (function () {
   function fmt(n) {
@@ -7,6 +7,12 @@
     if (Math.abs(n) >= 100) return n.toFixed(2);
     if (Math.abs(n) >= 1) return n.toFixed(3);
     return n.toFixed(4);
+  }
+
+  /** 正整数枚数，千分位 */
+  function fmtTokens(n) {
+    if (n == null || !isFinite(n) || n <= 0) return "—";
+    return Math.round(n).toLocaleString("zh-CN");
   }
 
   function calc() {
@@ -17,13 +23,15 @@
 
     var elP = document.getElementById("yiyuan-v-purchase");
     var elC = document.getElementById("yiyuan-v-consume");
-    var elF = document.getElementById("yiyuan-v-final");
-    if (!elP || !elC || !elF) return;
+    var elT = document.getElementById("yiyuan-v-tokens");
+    var elRef = document.getElementById("yiyuan-v-yuan-per-m");
+    if (!elP || !elC || !elT || !elRef) return;
 
     if (!(rmb > 0) || !(credit > 0)) {
       elP.textContent = "—";
       elC.textContent = "—";
-      elF.textContent = "—";
+      elT.textContent = "—";
+      elRef.textContent = "—";
       return;
     }
 
@@ -32,15 +40,19 @@
 
     if (!(pUsd >= 0) || !(mult >= 0)) {
       elC.textContent = "—";
-      elF.textContent = "—";
+      elT.textContent = "—";
+      elRef.textContent = "—";
       return;
     }
 
     var consumePerM = pUsd * mult;
     elC.textContent = fmt(consumePerM) + "（与「官方标价×倍率」同口径的额度/百万）";
 
-    var finalYuan = consumePerM / purchasePerYuan;
-    elF.textContent = fmt(finalYuan);
+    var finalYuanPerM = consumePerM / purchasePerYuan;
+    var tokensPerOneYuan =
+      finalYuanPerM > 0 ? 1e6 / finalYuanPerM : NaN;
+    elT.textContent = fmtTokens(tokensPerOneYuan);
+    elRef.textContent = fmt(finalYuanPerM);
   }
 
   var btn = document.getElementById("yiyuan-calc-btn");

@@ -150,8 +150,8 @@
         <span class="detector-sec-title" data-i18n="cost_sec">实付单价试算</span>
         <a class="detector-hist-link" href="/yiyuan" data-i18n="cost_link_formula">公式与拆解</a>
       </div>
-      <p class="detector-hint i18n-zh" data-i18n="cost_hint">填写该站的<strong>官方美金单价、倍率、充值活动</strong>等，试算<strong>实付约多少元人民币 / 百万 Token</strong>。与「一元模型」页同一套公式，结果仅供参考。</p>
-      <p class="detector-hint i18n-en" data-i18n="cost_hint_en">Enter USD price / M, multiplier, and top-up deal to estimate CNY per million tokens. Same formula as the ¥/token page.</p>
+      <p class="detector-hint i18n-zh" data-i18n="cost_hint">填写该站的<strong>官方美金单价、倍率、充值活动</strong>等，试算<strong>1 元大约能购买多少枚 Token</strong>（与「一元模型」页同一套公式，结果仅供参考）。</p>
+      <p class="detector-hint i18n-en" data-i18n="cost_hint_en">Enter USD/M, multiplier, and top-up to estimate tokens per 1 CNY. Same formula as the ¥/token page.</p>
       <form class="detector-form detector-form-hvoy home-cost-form" id="form-home-cost" autocomplete="off">
         <div class="hvoy-inputs cost-inputs-4">
           <div class="hvoy-field">
@@ -193,8 +193,10 @@
           <p class="i18n-en home-cost-line">1 CNY = <span id="home-cost-v-purchase-en">—</span></p>
           <p class="i18n-zh home-cost-line">每百万消耗额度 = <span id="home-cost-v-consume-zh">—</span></p>
           <p class="i18n-en home-cost-line">Per-million debit = <span id="home-cost-v-consume-en">—</span></p>
-          <p class="i18n-zh home-cost-final">实付约 <span id="home-cost-v-final-zh">—</span> 元 / 百万 Token</p>
-          <p class="i18n-en home-cost-final">≈ <span id="home-cost-v-final-en">—</span> CNY / M</p>
+          <p class="i18n-zh home-cost-final">1 元可购买约 <span id="home-cost-v-tokens-zh" class="yiyuan-token-num">—</span> 枚 Token</p>
+          <p class="i18n-en home-cost-final">≈ <span id="home-cost-v-tokens-en" class="yiyuan-token-num">—</span> tokens / 1 CNY</p>
+          <p class="i18n-zh small muted home-cost-yuan-ref">约合实付 <span id="home-cost-v-yuanm-zh">—</span> 元 / 百万 Token（参考）</p>
+          <p class="i18n-en small muted home-cost-yuan-ref">≈ <span id="home-cost-v-yuanm-en">—</span> CNY per M tokens (ref.)</p>
         </div>
       </form>
     </section>
