@@ -5,6 +5,11 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from relay_probe.config import Settings
+from relay_probe.dilution_display import (
+    dilution_cell_percent,
+    dilution_pct_numeric,
+    format_online_rate_pct,
+)
 from relay_probe.models import ModelProbeSample, ProbeSample, Relay
 
 settings = Settings()
@@ -93,6 +98,8 @@ def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dic
         nb = _norm_base_url(r.base_url)
         pin_first = bool(pin and nb in pin)
         sort_weight = int(r.rank_boost) + (_PIN_FIRST_BONUS if pin_first else 0)
+        n = int(st["samples_in_window"])
+        sr = float(st["success_rate"])
         rows.append(
             {
                 "relay_id": r.id,
@@ -105,7 +112,12 @@ def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dic
                 "samples_in_window": st["samples_in_window"],
                 "ok_in_window": st["ok_in_window"],
                 "success_rate": st["success_rate"],
+                "success_rate_pct": format_online_rate_pct(
+                    sr if n else None, samples=n
+                ),
                 "avg_latency_ms": st["avg_latency_ms"],
+                "dilution": dilution_cell_percent(r, samples=n, rate_0_1=sr),
+                "dilution_pct": dilution_pct_numeric(r, samples=n, rate_0_1=sr),
                 "last_check_at": last.created_at.isoformat() if last else None,
                 "last_ok": last.ok if last else None,
                 "last_latency_ms": last.latency_ms if last else None,

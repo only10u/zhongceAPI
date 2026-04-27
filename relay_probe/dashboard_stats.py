@@ -1,4 +1,4 @@
-"""按模型线号聚合：在线率、平均延迟、运行状态。掺水率优先后台登记，否则按本线目录探测给出口径提示（非对话级质检）。"""
+"""按模型线号聚合：在线率、平均延迟、运行状态。掺水率格仅显示 1%–100%；人工 override 优先，否则按目录命中率推算风险（非对话级质检）。"""
 from __future__ import annotations
 
 import datetime as dt
@@ -8,6 +8,11 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from relay_probe.config import Settings
+from relay_probe.dilution_display import (
+    dilution_cell_percent,
+    dilution_pct_numeric,
+    format_online_rate_pct,
+)
 from relay_probe.model_catalog import TRACKED_MODELS
 from relay_probe.models import ModelProbeSample, ProbeSample, Relay
 from relay_probe.ranking import build_ranking_rows
@@ -19,40 +24,6 @@ _UPTIME_SLOTS = 12
 
 def window_start_utc(hours: int) -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)
-
-
-def _manual_dilution(r: Relay) -> str | None:
-    if r.dilution_label and r.dilution_label.strip():
-        return r.dilution_label.strip()
-    if r.dilution_override is not None:
-        return f"{r.dilution_override:.0f}%"
-    return None
-
-
-def _dilution_probe_hint(st: dict[str, Any]) -> str:
-    """
-    无人工掺水登记时：根据当前模型线在窗口内的目录探测样本与在线率生成展示文案。
-    仅反映 /v1/models 子串命中情况，不等于对话掺水质检。
-    """
-    n = int(st.get("samples") or 0)
-    if n <= 0:
-        return "本线无样本"
-    orate = float(st.get("online_rate") or 0.0)
-    pct = int(round(orate * 100))
-    if orate >= 0.9:
-        return f"目录{pct}%·掺水未测"
-    if orate >= 0.65:
-        return f"目录{pct}%·待核"
-    if orate >= 0.35:
-        return f"目录{pct}%·波动"
-    return f"目录{pct}%·偏弱"
-
-
-def _format_dilution_row(r: Relay, st: dict[str, Any]) -> str:
-    manual = _manual_dilution(r)
-    if manual is not None:
-        return manual
-    return _dilution_probe_hint(st)
 
 
 def _uptime_block_keys(
@@ -169,7 +140,10 @@ def build_per_model_table(
         else:
             run_st = "无数据"
             st_cls = "st-muted"
-        dilution = _format_dilution_row(r, st)
+        n_s = int(st["samples"])
+        orv = float(st["online_rate"])
+        dilution = dilution_cell_percent(r, samples=n_s, rate_0_1=orv)
+        dilution_pct = dilution_pct_numeric(r, samples=n_s, rate_0_1=orv)
         ukeys = _uptime_block_keys(
             db, r.id, model_slug, since, st["online_rate"], st["samples"]
         )
@@ -189,8 +163,11 @@ def build_per_model_table(
                 "price_sort_key": r.price_sort_key,
                 "online_rate": st["online_rate"],
                 "samples": st["samples"],
-                "online_rate_pct": round(st["online_rate"] * 100, 1) if st["samples"] else "—",
+                "online_rate_pct": format_online_rate_pct(
+                    orv if n_s else None, samples=n_s
+                ),
                 "dilution": dilution,
+                "dilution_pct": dilution_pct,
                 "avg_latency_ms": st["avg_latency_ms"],
                 "status": run_st,
                 "status_class": st_cls,

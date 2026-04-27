@@ -25,6 +25,80 @@
     }
   }
 
+  function fmtCatalogOnlineCell(row) {
+    var p = row.online_rate_pct;
+    if (!row.samples) return "—";
+    if (typeof p === "string" && p.length) return p;
+    if (typeof p === "number") return p + "%";
+    return "—";
+  }
+
+  function fmtLegacySuccessCell(x) {
+    if (x.success_rate_pct && typeof x.success_rate_pct === "string") return x.success_rate_pct;
+    if (x.samples_in_window && x.success_rate != null)
+      return (Math.round(x.success_rate * 10000) / 100).toFixed(2) + "%";
+    return "—";
+  }
+
+  function formatProbeDetailText(obj) {
+    if (!obj || typeof obj !== "object") return "";
+    var lines = [];
+    var k = obj.kind || "";
+    lines.push("【站点】" + (obj.name || "—"));
+    if (obj.base_url) lines.push("API Base  " + obj.base_url);
+    if (obj.group && obj.group !== "—") lines.push("分组  " + obj.group);
+    if (obj.pricing_input_usd != null && obj.pricing_input_usd !== "—")
+      lines.push("输入/$（登记）  " + obj.pricing_input_usd);
+    if (obj.pricing_output_usd != null && obj.pricing_output_usd !== "—")
+      lines.push("输出/$（登记）  " + obj.pricing_output_usd);
+    if (obj.cny_token_line != null && obj.cny_token_line !== "—")
+      lines.push("1人民币=X TOKEN  " + obj.cny_token_line);
+    if (k === "rank_model" || k === "home_detect_rank") {
+      lines.push("—— 本模型线 · GET /v1/models 目录子串 ——");
+      if (obj.samples != null) lines.push("窗口样本数  " + obj.samples);
+      if (typeof obj.online_rate === "number")
+        lines.push("目录命中率（原始）  " + (obj.online_rate * 100).toFixed(2) + "%");
+      lines.push("表列·在线率  " + fmtCatalogOnlineCell(obj));
+      lines.push("表列·掺水率  " + (obj.dilution || "—"));
+      if (obj.dilution_pct != null) lines.push("掺水率数值  " + obj.dilution_pct + "（1–100）");
+      if (obj.avg_latency_ms != null) lines.push("平均延迟  " + obj.avg_latency_ms + " ms");
+      if (obj.status) lines.push("运行摘要  " + obj.status);
+    } else if (k === "legacy_top" || k === "rank_legacy") {
+      lines.push("—— 整站 /v1/models 通路（不按模型线拆分）——");
+      if (obj.samples_in_window != null) lines.push("窗口样本数  " + obj.samples_in_window);
+      if (typeof obj.success_rate === "number")
+        lines.push("窗口成功率（原始）  " + (obj.success_rate * 100).toFixed(2) + "%");
+      lines.push("表列·窗口成功率  " + fmtLegacySuccessCell(obj));
+      lines.push("表列·掺水率  " + (obj.dilution || "—"));
+      if (obj.dilution_pct != null) lines.push("掺水率数值  " + obj.dilution_pct + "（1–100）");
+      if (obj.avg_latency_ms != null) lines.push("平均延迟  " + obj.avg_latency_ms + " ms");
+      if (obj.check_path) lines.push("探测路径  " + obj.check_path);
+      if (obj.last_check_at) lines.push("最近探测时间  " + fmtTime(obj.last_check_at));
+    } else if (k === "matrix") {
+      lines.push("—— 各模型线目录格 ——");
+      var by = obj.by_slug || {};
+      MODEL_SLUGS.forEach(function (slug) {
+        var c = by[slug];
+        if (!c) return;
+        var oc = c.online_rate_pct;
+        var t = "—";
+        if (c.samples) {
+          if (typeof oc === "string") t = oc;
+          else if (typeof oc === "number") t = oc + "%";
+          else t = String(c.status || "—");
+        } else if (c.status) t = String(c.status);
+        lines.push(slug + "  " + t + " · " + (c.status || "—"));
+      });
+    } else {
+      try {
+        lines.push(JSON.stringify(obj, null, 2));
+      } catch (e) {
+        lines.push(String(obj));
+      }
+    }
+    return lines.join("\n");
+  }
+
   function numPriceSortKey(v) {
     if (v == null || v === "") return null;
     var n = Number(v);
@@ -169,6 +243,16 @@
     return n ? sum / n : 0;
   }
 
+  function matrixCellOnlineTxt(cell) {
+    if (!cell || !cell.samples) {
+      return cell && cell.status ? String(cell.status) : "—";
+    }
+    var p = cell.online_rate_pct;
+    if (typeof p === "string" && p.length) return p;
+    if (typeof p === "number") return p + "%";
+    return String(cell.status || "—");
+  }
+
   function sortMatrixRows(rows, mode) {
     if (!rows || !rows.length) return rows || [];
     if (!mode || mode === "default") return rows;
@@ -283,7 +367,7 @@
           (obj && obj.site_name && String(obj.site_name)) ||
           "—";
       }
-      if (preEl) preEl.textContent = JSON.stringify(obj, null, 2);
+      if (preEl) preEl.textContent = formatProbeDetailText(obj);
       modal.hidden = false;
     });
   }
@@ -368,15 +452,7 @@
       );
       (d.models_meta || []).forEach(function (m) {
         var cell = row.by_slug && row.by_slug[m.slug];
-        var txt = "—";
-        if (cell && cell.samples) {
-          txt =
-            typeof cell.online_rate_pct === "number"
-              ? cell.online_rate_pct + "%"
-              : String(cell.status || "—");
-        } else if (cell && cell.status) {
-          txt = cell.status;
-        }
+        var txt = matrixCellOnlineTxt(cell);
         tr.appendChild(
           el(
             "td",
@@ -446,38 +522,66 @@
           if (tb) {
             tb.textContent = "";
             if (leg.length === 0) {
-              const tr = document.createElement("tr");
-              tr.innerHTML = '<td colspan="4" class="muted">—</td>';
+              const tr = el("tr");
+              const td0 = el("td", "muted", "—");
+              td0.colSpan = 8;
+              tr.appendChild(td0);
               tb.appendChild(tr);
             } else {
               leg.slice(0, 8).forEach((x) => {
-                const tr = document.createElement("tr");
-                tr.className = "row-flash";
-                const ok = x.samples_in_window
-                  ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%"
-                  : "—";
-                const lat =
-                  x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
-                tr.innerHTML =
-                  "<td class=\"td-rank\"><span class=\"rank-pill\">#" +
-                  x.rank +
-                  '</span></td><td class="td-name"></td><td class="td-metric">' +
-                  ok +
-                  '</td><td class="td-metric td-lat">' +
-                  lat +
-                  "</td>";
-                var tdn = tr.querySelector(".td-name");
+                const tr = el("tr", "row-flash");
+                const tdR = el("td", "td-rank");
+                tdR.appendChild(el("span", "rank-pill", "#" + x.rank));
+                tr.appendChild(tdR);
+                const tdN = el("td", "td-name");
                 if (x.base_url) {
-                  var an = document.createElement("a");
+                  const an = document.createElement("a");
                   an.className = "site-link";
                   an.href = x.base_url;
                   an.target = "_blank";
                   an.rel = "noopener noreferrer";
                   an.textContent = x.name || "—";
-                  tdn.appendChild(an);
+                  tdN.appendChild(an);
                 } else {
-                  tdn.textContent = x.name || "—";
+                  tdN.textContent = x.name || "—";
                 }
+                tr.appendChild(tdN);
+                tr.appendChild(
+                  el(
+                    "td",
+                    "td-mono-sm",
+                    x.pricing_input_usd ? String(x.pricing_input_usd) : "—"
+                  )
+                );
+                tr.appendChild(
+                  el(
+                    "td",
+                    "td-mono-sm",
+                    x.pricing_output_usd ? String(x.pricing_output_usd) : "—"
+                  )
+                );
+                tr.appendChild(
+                  el(
+                    "td",
+                    "td-price",
+                    x.cny_token_line ? String(x.cny_token_line) : "—"
+                  )
+                );
+                tr.appendChild(el("td", "td-metric", fmtLegacySuccessCell(x)));
+                tr.appendChild(
+                  el(
+                    "td",
+                    "td-metric td-dilu",
+                    x.dilution != null ? String(x.dilution) : "—"
+                  )
+                );
+                tr.appendChild(
+                  el(
+                    "td",
+                    "td-metric td-lat",
+                    x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—"
+                  )
+                );
                 setRowDetail(tr, { kind: "legacy_top", ...x });
                 tb.appendChild(tr);
               });
@@ -513,28 +617,19 @@
           if (!tb) return;
           tb.textContent = "";
           if (leg.length === 0) {
-            var tr = document.createElement("tr");
-            tr.innerHTML = '<td colspan="4" class="muted">—</td>';
-            tb.appendChild(tr);
+            var tr0 = el("tr");
+            var td0 = el("td", "muted", "—");
+            td0.colSpan = 8;
+            tr0.appendChild(td0);
+            tb.appendChild(tr0);
             return;
           }
           leg.slice(0, 12).forEach(function (x) {
-            var tr = document.createElement("tr");
-            tr.className = "row-flash";
-            var rate =
-              x.samples_in_window && x.success_rate != null
-                ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%"
-                : "—";
-            var lat = x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
-            tr.innerHTML =
-              '<td class="td-rank"><span class="rank-pill">#' +
-              x.rank +
-              '</span></td><td class="td-name"></td><td class="td-metric">' +
-              rate +
-              '</td><td class="td-metric">' +
-              lat +
-              "</td>";
-            var tdn = tr.querySelector(".td-name");
+            var tr = el("tr", "row-flash");
+            var tdR = el("td", "td-rank");
+            tdR.appendChild(el("span", "rank-pill", "#" + x.rank));
+            tr.appendChild(tdR);
+            var tdn = el("td", "td-name");
             if (x.base_url) {
               var a = document.createElement("a");
               a.className = "site-link";
@@ -546,6 +641,43 @@
             } else {
               tdn.textContent = x.name || "—";
             }
+            tr.appendChild(tdn);
+            tr.appendChild(
+              el(
+                "td",
+                "td-mono-sm",
+                x.pricing_input_usd ? String(x.pricing_input_usd) : "—"
+              )
+            );
+            tr.appendChild(
+              el(
+                "td",
+                "td-mono-sm",
+                x.pricing_output_usd ? String(x.pricing_output_usd) : "—"
+              )
+            );
+            tr.appendChild(
+              el(
+                "td",
+                "td-price",
+                x.cny_token_line ? String(x.cny_token_line) : "—"
+              )
+            );
+            tr.appendChild(el("td", "td-metric", fmtLegacySuccessCell(x)));
+            tr.appendChild(
+              el(
+                "td",
+                "td-metric td-dilu",
+                x.dilution != null ? String(x.dilution) : "—"
+              )
+            );
+            tr.appendChild(
+              el(
+                "td",
+                "td-metric td-lat",
+                x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—"
+              )
+            );
             setRowDetail(tr, { kind: "legacy_top", ...x });
             tb.appendChild(tr);
           });
@@ -894,10 +1026,7 @@
         el("td", "td-mono-sm", String(row.pricing_output_usd || "—"))
       );
       tr.appendChild(el("td", "td-price", String(row.cny_token_line || "—")));
-      const online =
-        row.samples && typeof row.online_rate_pct === "number"
-          ? row.online_rate_pct + "%"
-          : "—";
+      const online = fmtCatalogOnlineCell(row);
       tr.appendChild(el("td", "td-metric", online));
       tr.appendChild(el("td", "td-metric td-dilu", String(row.dilution || "—")));
       const lat = row.avg_latency_ms != null ? String(row.avg_latency_ms) : "—";
@@ -907,9 +1036,7 @@
       g.setAttribute("role", "img");
       const tip =
         (row.status || "—") +
-        (row.samples && row.online_rate_pct != null
-          ? " · " + row.online_rate_pct + "%"
-          : "");
+        (row.samples ? " · 在线 " + fmtCatalogOnlineCell(row) : "");
       g.setAttribute("title", tip);
       g.setAttribute("aria-label", tip);
       const keys = row.uptime_block_keys || [];
@@ -956,11 +1083,11 @@
       tr.appendChild(
         el("td", "td-price", x.cny_token_line ? String(x.cny_token_line) : "—")
       );
-      const rate =
-        x.samples_in_window && x.success_rate != null
-          ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%"
-          : "—";
+      const rate = fmtLegacySuccessCell(x);
       tr.appendChild(el("td", "td-metric", rate));
+      tr.appendChild(
+        el("td", "td-metric td-dilu", x.dilution != null ? String(x.dilution) : "—")
+      );
       const lat = x.avg_latency_ms != null ? String(x.avg_latency_ms) : "—";
       tr.appendChild(el("td", "td-metric td-lat", lat));
       const tdu = el("td", "url");
@@ -1238,7 +1365,7 @@
       if (!rows.length) {
         var tr0 = el("tr");
         var td0 = el("td", "muted", "暂无数据");
-        td0.colSpan = 8;
+        td0.colSpan = 9;
         tr0.appendChild(td0);
         tb.appendChild(tr0);
         return;
@@ -1272,11 +1399,10 @@
           el("td", "td-mono-sm", String(row.pricing_output_usd || "—"))
         );
         tr.appendChild(el("td", "td-price", String(row.cny_token_line || "—")));
-        var online =
-          row.samples && typeof row.online_rate_pct === "number"
-            ? row.online_rate_pct + "%"
-            : "—";
-        tr.appendChild(el("td", "td-metric", online));
+        tr.appendChild(el("td", "td-metric", fmtCatalogOnlineCell(row)));
+        tr.appendChild(
+          el("td", "td-metric td-dilu", String(row.dilution || "—"))
+        );
         var lat = row.avg_latency_ms != null ? String(row.avg_latency_ms) : "—";
         tr.appendChild(el("td", "td-metric td-lat", lat));
         var tdSt = el("td", "td-run");

@@ -97,11 +97,11 @@
               <td class="td-mono-sm">{{ row.pricing_input_usd }}</td>
               <td class="td-mono-sm">{{ row.pricing_output_usd }}</td>
               <td class="td-price">{{ row.cny_token_line }}</td>
-              <td class="td-metric">{% if row.samples %}{{ row.online_rate_pct }}%{% else %}—{% endif %}</td>
+              <td class="td-metric">{% if row.samples %}{{ row.online_rate_pct }}{% else %}—{% endif %}</td>
               <td class="td-metric td-dilu">{{ row.dilution }}</td>
               <td class="td-metric td-lat">{% if row.avg_latency_ms is not none %}{{ row.avg_latency_ms }}{% else %}—{% endif %}</td>
               <td class="td-uptime">
-                <div class="uptime-grid" role="img" aria-label="{{ row.status }}{% if row.samples %} · 在线率 {{ row.online_rate_pct }}%{% endif %}" title="{{ row.status }}{% if row.samples %} · {{ row.online_rate_pct }}%{% endif %}">
+                <div class="uptime-grid" role="img" aria-label="{{ row.status }}{% if row.samples %} · 在线率 {{ row.online_rate_pct }}{% endif %}" title="{{ row.status }}{% if row.samples %} · {{ row.online_rate_pct }}{% endif %}">
                   {% for k in row.uptime_block_keys %}
                   <span class="uptime-sq sq-{{ k }}"></span>
                   {% endfor %}
@@ -141,6 +141,7 @@
             <th data-i18n="col_out_usd">输出/$</th>
             <th data-i18n="col_cny_token">1人民币=X TOKEN</th>
             <th data-i18n="col_window_ok">窗口成功率</th>
+            <th class="th-metric" data-i18n="col_dilu">掺水率</th>
             <th data-i18n="col_avg_lat">均延迟 (ms)</th>
             <th>Base</th>
           </tr>
@@ -153,7 +154,8 @@
             <td class="td-mono-sm">{% if x.pricing_input_usd %}{{ x.pricing_input_usd }}{% else %}—{% endif %}</td>
             <td class="td-mono-sm">{% if x.pricing_output_usd %}{{ x.pricing_output_usd }}{% else %}—{% endif %}</td>
             <td class="td-price">{% if x.cny_token_line %}{{ x.cny_token_line }}{% else %}—{% endif %}</td>
-            <td class="td-metric">{% if x.samples_in_window %}{{ (x.success_rate * 100)|round(1) }}%{% else %}—{% endif %}</td>
+            <td class="td-metric">{% if x.success_rate_pct %}{{ x.success_rate_pct }}{% elif x.samples_in_window %}{{ (x.success_rate * 100)|round(2) }}%{% else %}—{% endif %}</td>
+            <td class="td-metric td-dilu">{% if x.dilution %}{{ x.dilution }}{% else %}—{% endif %}</td>
             <td class="td-metric td-lat">{% if x.avg_latency_ms is not none %}{{ x.avg_latency_ms }}{% else %}—{% endif %}</td>
             <td class="url"><a class="site-link" href="{{ x.base_url }}" target="_blank" rel="noopener noreferrer"><small>{{ x.base_url }}</small></a></td>
           </tr>

@@ -386,12 +386,12 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         credentials: "same-origin",
       });
       if (r.ok) {
-        if (cms) cms.textContent = "已创建，请刷新页面后可编辑 Key 与分线。";
-        fc.reset();
-        var cp = fc.querySelector("input[name=check_path]");
-        if (cp) cp.value = "/v1/models";
-        var en = fc.querySelector("input[name=enabled]");
-        if (en) en.checked = true;
+        if (cms) cms.textContent = "已创建，正在刷新…";
+        try {
+          window.location.reload();
+        } catch (e) {
+          if (cms) cms.textContent = "已创建，请手动刷新页面后可编辑 Key 与分线。";
+        }
         return;
       }
       if (cms) {
