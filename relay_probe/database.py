@@ -69,8 +69,8 @@ def _ensure_inclusion_and_rank_json_columns() -> None:
     inc_alters = [
         (
             "relay_id",
-            # 旧库 ALTER 不加 REFERENCES，避免部分 SQLite 版本失败；逻辑层仍校验中继 ID
-            "ALTER TABLE inclusion_requests ADD COLUMN relay_id INTEGER UNIQUE",
+            # 表内已有数据时 SQLite 禁止 ADD COLUMN … UNIQUE；先加普通列再建唯一索引
+            "ALTER TABLE inclusion_requests ADD COLUMN relay_id INTEGER",
         ),
         ("founded_date", "ALTER TABLE inclusion_requests ADD COLUMN founded_date DATE"),
         ("signup_url", "ALTER TABLE inclusion_requests ADD COLUMN signup_url VARCHAR(1024)"),
@@ -93,6 +93,20 @@ def _ensure_inclusion_and_rank_json_columns() -> None:
             if col not in inames:
                 conn.execute(text(ddl))
                 inames.add(col)
+        # 非空 relay_id 唯一（SQLite 允许多个 NULL）
+        ridx = conn.execute(
+            text(
+                "SELECT 1 FROM sqlite_master WHERE type='index' "
+                "AND name='uq_inclusion_requests_relay_id'"
+            )
+        ).first()
+        if ridx is None and "relay_id" in inames:
+            conn.execute(
+                text(
+                    "CREATE UNIQUE INDEX uq_inclusion_requests_relay_id "
+                    "ON inclusion_requests(relay_id)"
+                )
+            )
 
 
 def init_db() -> None:
