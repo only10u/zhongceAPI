@@ -18,7 +18,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
   <section class="card magic-card admin-relay-hub" id="admin-relays">
     <header class="admin-relay-hub-head">
       <h2 class="h2-magic admin-relay-hub-title">中转站站点管理</h2>
-      <p class="admin-relay-hub-lead i18n-zh">在此维护每个已收录站点的<strong>名称、Base、分组、1人民币=x Token（登记文本）、掺水、探测路径、启用状态与 API Key</strong>；与排行、一元模型页展示一致。保存后立即写入数据库。</p>
+      <p class="admin-relay-hub-lead i18n-zh"><strong>新收录站点仅通过本页维护：</strong>使用「添加站点」填写<strong>名称、Base、API Key</strong>与下方<strong>定价四栏</strong>（输入/$、输出/$、汇率/排序键、1人民币=x Token）；保存后立即入库并参与探测与排行展示。</p>
       <p class="admin-relay-hub-lead i18n-en">Edit each relay’s fields; saved to DB. Key: leave blank to keep current.</p>
       <div class="admin-relay-hub-actions">
         <a class="btn btn-ghost btn-sm" href="#relay-overview">总览表</a>
@@ -29,18 +29,38 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
 
     <div id="admin-relay-create" class="card magic-card admin-relay-create">
       <h3 class="admin-relay-subh">添加新站点</h3>
-      <p class="small muted admin-relay-hint">创建基础记录后可逐项编辑 <strong>API Key、掺水率、各模型分线上架</strong>。定价文案与排序键与前台「输入/$、输出/$、1人民币=X TOKEN」及表头排序一致。</p>
+      <p class="small muted admin-relay-hint">填写接入信息与密钥后创建；定价四栏与前台表头一致，可留空创建后再在下方「逐项编辑」补全。</p>
       <form id="f-admin-relay-create" class="form f-relay-grid" autocomplete="off">
-        <label><span>名称</span> <input name="name" type="text" required placeholder="显示名" maxlength="128"/></label>
-        <label class="span2"><span>Base URL</span> <input name="base_url" type="url" required placeholder="https://api.xxx.com" /></label>
-        <label><span>站点分组</span> <input name="group_name" type="text" placeholder="可选" maxlength="64"/></label>
-        <label><span>探测路径</span> <input name="check_path" type="text" value="/v1/models" placeholder="/v1/models" /></label>
-        <label><span>输入/$（展示）</span> <input name="pricing_input_usd" type="text" placeholder="如 1.2" maxlength="64"/></label>
-        <label><span>输出/$（展示）</span> <input name="pricing_output_usd" type="text" placeholder="如 6" maxlength="64"/></label>
-        <label><span>1人民币=X TOKEN</span> <input name="site_price" type="text" placeholder="如 1人民币=150000Token" maxlength="64"/></label>
-        <label><span>价格排序键</span> <input name="price_sort_key" type="number" step="any" placeholder="数字越小越便宜；空则仅综合序"/></label>
-        <label><span>排序权值</span> <input name="rank_boost" type="number" value="0" min="0"/></label>
-        <label class="chkb"><input name="enabled" type="checkbox" value="1" checked/> <span>已启用探测</span></label>
+        <fieldset class="admin-fieldset admin-fieldset-core span2">
+          <legend>接入信息</legend>
+          <label><span>站点名称</span> <input name="name" type="text" required placeholder="显示名" maxlength="128"/></label>
+          <label class="span2"><span>Base URL</span> <input name="base_url" type="url" required placeholder="https://api.xxx.com" /></label>
+          <label class="span2"><span>API Key</span>
+            <input name="api_key" type="password" autocomplete="new-password" placeholder="sk-…（可选，用于探测；可创建后再填）"/>
+          </label>
+        </fieldset>
+        <fieldset class="admin-fieldset admin-fieldset-pricing span2">
+          <legend>定价与展示</legend>
+          <p class="small muted admin-fieldset-tip">与排行 / 矩阵 / 一元模型页表头列一致：输入/$、输出/$、汇率（后台用数字作比价排序）、1人民币=x Token 文案。</p>
+          <label><span>输入 / $（展示）</span> <input name="pricing_input_usd" type="text" placeholder="如 1.2 / 百万" maxlength="64"/></label>
+          <label><span>输出 / $（展示）</span> <input name="pricing_output_usd" type="text" placeholder="如 6 / 百万" maxlength="64"/></label>
+          <label><span>汇率（价格排序键）</span>
+            <input name="price_sort_key" type="number" step="any" placeholder="数字，越小通常越便宜；留空走综合排序"/>
+            <span class="field-hint">用于表头「按价格」排序，非前台展示的美元汇率牌价。</span>
+          </label>
+          <label class="span2"><span>1 人民币 = x Token（展示）</span>
+            <input name="site_price" type="text" placeholder="如 1人民币=150000Token" maxlength="64"/>
+          </label>
+        </fieldset>
+        <details class="admin-adv-details span2">
+          <summary class="admin-adv-sum">高级选项</summary>
+          <div class="form f-relay-grid admin-adv-inner">
+            <label><span>站点分组</span> <input name="group_name" type="text" placeholder="可选" maxlength="64"/></label>
+            <label><span>探测路径</span> <input name="check_path" type="text" value="/v1/models" placeholder="/v1/models" /></label>
+            <label><span>排序权值 rank_boost</span> <input name="rank_boost" type="number" value="0" min="0"/></label>
+            <label class="chkb"><input name="enabled" type="checkbox" value="1" checked/> <span>已启用探测</span></label>
+          </div>
+        </details>
         <div class="span2 admin-relay-actions">
           <button type="submit" class="btn primary">创建站点</button>
           <span id="admin-create-msg" class="msg" aria-live="polite"></span>
@@ -59,6 +79,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
             <th>分组</th>
             <th>输入/$</th>
             <th>输出/$</th>
+            <th>汇率</th>
             <th>1人民币=X</th>
             <th>启用</th>
             <th>Key</th>
@@ -74,20 +95,21 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
             <td>{% if r.group_name %}{{ r.group_name }}{% else %}—{% endif %}</td>
             <td class="td-ellipsis mono-sm">{% if r.pricing_input_usd %}{{ r.pricing_input_usd }}{% else %}—{% endif %}</td>
             <td class="td-ellipsis mono-sm">{% if r.pricing_output_usd %}{{ r.pricing_output_usd }}{% else %}—{% endif %}</td>
+            <td class="mono-sm" title="价格排序键">{% if r.price_sort_key is not none %}{{ r.price_sort_key }}{% else %}—{% endif %}</td>
             <td class="td-ellipsis" title="{{ r.site_price or '' }}">{% if r.site_price %}{{ r.site_price }}{% else %}—{% endif %}</td>
             <td>{% if r.enabled %}是{% else %}否{% endif %}</td>
             <td>{% if r.api_key %}✓{% else %}—{% endif %}</td>
             <td><button type="button" class="btn btn-magic btn-sm admin-goto-edit" data-target="relay-{{ r.id }}">编辑</button></td>
           </tr>
           {% else %}
-          <tr><td colspan="10" class="muted">暂无中转；请使用上方「添加站点」或 <code>POST /api/relays</code>（<code>X-Admin-Token</code>）。</td></tr>
+          <tr><td colspan="11" class="muted">暂无中转；请使用上方「添加站点」在后台录入。</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
     <h3 class="admin-relay-subh" id="relay-edit-start">逐项编辑</h3>
-    <p class="small muted admin-relay-hint">定价列与前台表头一致为「输入/$」「输出/$」「1人民币=X TOKEN」。掺水率文案/% 未填时，前台按<strong>各模型线</strong>目录探测在线率显示摘要（非对话质检）。登记 <code>1人民币=x Token</code> 时可读数字即可。API Key 仅在新填写时覆盖，留空不变。</p>
+    <p class="small muted admin-relay-hint">每个卡片内：<strong>接入信息</strong>、<strong>定价与展示</strong>（输入/$、输出/$、汇率/排序键、1人民币=x Token）可与前台表头对照修改；掺水与分线见各字段说明。API Key 仅在新填写时覆盖，留空不变。</p>
   </section>
 
   <div class="admin-relay-list">
@@ -100,13 +122,23 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         {% if r.api_key %}<span class="admin-kv-badge">Key</span>{% else %}<span class="admin-kv-badge is-off">无 Key</span>{% endif %}
       </h3>
       <form class="form f-relay-grid" autocomplete="off" data-relay-id="{{ r.id }}">
-        <label><span>名称</span> <input name="name" type="text" value="{{ r.name }}" required/></label>
-        <label class="span2"><span>Base URL</span> <input name="base_url" type="url" value="{{ r.base_url }}" required/></label>
-        <label><span>站点分组</span> <input name="group_name" type="text" value="{{ r.group_name or '' }}" placeholder="可选"/></label>
-        <label><span>输入/$（展示）</span> <input name="pricing_input_usd" type="text" value="{{ r.pricing_input_usd or '' }}" placeholder="如 1.2 / 百万" maxlength="64"/></label>
-        <label><span>输出/$（展示）</span> <input name="pricing_output_usd" type="text" value="{{ r.pricing_output_usd or '' }}" placeholder="如 6 / 百万" maxlength="64"/></label>
-        <label><span>1人民币=X TOKEN</span> <input name="site_price" type="text" value="{{ r.site_price or '' }}" placeholder="如 1人民币=150000Token" maxlength="64"/></label>
-        <label><span>价格排序键</span> <input name="price_sort_key" type="number" step="any" value="{{ r.price_sort_key if r.price_sort_key is not none else '' }}" placeholder="越小越便宜；空=后台默认序"/></label>
+        <fieldset class="admin-fieldset admin-fieldset-core span2">
+          <legend>接入信息</legend>
+          <label><span>站点名称</span> <input name="name" type="text" value="{{ r.name }}" required/></label>
+          <label class="span2"><span>Base URL</span> <input name="base_url" type="url" value="{{ r.base_url }}" required/></label>
+          <label><span>站点分组</span> <input name="group_name" type="text" value="{{ r.group_name or '' }}" placeholder="可选"/></label>
+        </fieldset>
+        <fieldset class="admin-fieldset admin-fieldset-pricing span2">
+          <legend>定价与展示</legend>
+          <p class="small muted admin-fieldset-tip">与前台表头列一致，可直接编辑。</p>
+          <label><span>输入 / $（展示）</span> <input name="pricing_input_usd" type="text" value="{{ r.pricing_input_usd or '' }}" placeholder="如 1.2 / 百万" maxlength="64"/></label>
+          <label><span>输出 / $（展示）</span> <input name="pricing_output_usd" type="text" value="{{ r.pricing_output_usd or '' }}" placeholder="如 6 / 百万" maxlength="64"/></label>
+          <label><span>汇率（价格排序键）</span>
+            <input name="price_sort_key" type="number" step="any" value="{{ r.price_sort_key if r.price_sort_key is not none else '' }}" placeholder="数字越小通常越便宜"/>
+            <span class="field-hint">用于「按价格」排序。</span>
+          </label>
+          <label class="span2"><span>1 人民币 = x Token（展示）</span> <input name="site_price" type="text" value="{{ r.site_price or '' }}" placeholder="如 1人民币=150000Token" maxlength="64"/></label>
+        </fieldset>
         <label><span>掺水率文案</span> <input name="dilution_label" type="text" value="{{ r.dilution_label or '' }}" placeholder="如 几乎不（优先生效）" maxlength="64"/></label>
         <label><span>掺水率 %</span> <input name="dilution_override" type="number" min="0" max="100" step="0.1" value="{{ r.dilution_override if r.dilution_override is not none else '' }}" placeholder="0–100，空=清除"/></label>
         <label><span>排序权值</span> <input name="rank_boost" type="number" value="{{ r.rank_boost }}" min="0"/></label>
@@ -254,7 +286,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
     </tbody>
   </table>
   </div>
-  <p class="meta">新增或删除请使用 <code>X-Admin-Token</code>：<code>POST/DELETE /api/relays</code> 或 <a href="/docs">OpenAPI</a>。</p>
+  <p class="meta muted small">自动化/脚本也可使用 <code>X-Admin-Token</code> 调用 <a href="/docs">OpenAPI</a>；日常请以本页「添加站点」为准。</p>
 </div>
 {% endblock %}
 {% block scripts %}
@@ -526,6 +558,8 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         pricing_input_usd: (() => { var s = (fd.get("pricing_input_usd") || "").toString().trim(); return s || null; })(),
         pricing_output_usd: (() => { var s = (fd.get("pricing_output_usd") || "").toString().trim(); return s || null; })(),
       };
+      var akNew = (fd.get("api_key") || "").toString().trim();
+      if (akNew) body.api_key = akNew;
       var psk = (fd.get("price_sort_key") || "").toString().trim();
       if (psk === "") body.price_sort_key = null;
       else {

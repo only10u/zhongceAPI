@@ -1453,6 +1453,84 @@ body.auth-modal-open .main:has(.auth-page-landing) { min-height: 0; }
   padding: 1.1rem 1.25rem;
 }
 
+.admin-fieldset {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem 1rem;
+  margin: 0 0 1rem;
+  min-width: 0;
+}
+.f-relay-grid fieldset.admin-fieldset {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem 1rem;
+  align-items: end;
+}
+.f-relay-grid fieldset.admin-fieldset > legend {
+  grid-column: 1 / -1;
+}
+.f-relay-grid fieldset.admin-fieldset label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.86rem;
+  color: var(--muted);
+  min-width: 0;
+}
+.f-relay-grid fieldset.admin-fieldset label input,
+.f-relay-grid fieldset.admin-fieldset label textarea,
+.f-relay-grid fieldset.admin-fieldset label select {
+  color: var(--fg);
+}
+.f-relay-grid fieldset.admin-fieldset label.span2 {
+  grid-column: 1 / -1;
+}
+.admin-fieldset > legend {
+  padding: 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--fg);
+}
+.admin-fieldset-tip {
+  grid-column: 1 / -1;
+  margin: 0 0 0.5rem !important;
+}
+.admin-fieldset .field-hint {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+.admin-fieldset-pricing label > span:first-child {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.admin-adv-details {
+  margin-bottom: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+}
+.admin-adv-sum {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.admin-adv-inner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+  margin-top: 0.65rem;
+}
+@media (max-width: 640px) {
+  .admin-adv-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* —— 管理：分线上架 */
 .rank-shelf-fieldset {
   margin: 0.35rem 0 0;
