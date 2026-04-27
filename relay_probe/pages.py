@@ -11,6 +11,13 @@ import json
 import secrets
 import string
 
+from sqlalchemy import case
+
+from relay_probe.inclusion_sync import (
+    ensure_inclusion_for_new_relay,
+    sync_all_relays_to_inclusion,
+)
+
 from fastapi import APIRouter, Body, Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -58,6 +65,7 @@ from relay_probe.relay_apply import apply_relay_update
 from relay_probe.relay_rank_shelf import parse_rank_map_json
 from relay_probe.schemas import (
     HeartbeatIn,
+    InclusionAdminUpdate,
     InclusionStatusUpdate,
     RelayCreate,
     RelayUpdate,
@@ -377,10 +385,23 @@ def page_admin(
     urows = db.query(User).order_by(User.id).all()
     inc = (
         db.query(InclusionRequest)
-        .order_by(InclusionRequest.created_at.desc())
-        .limit(100)
+        .order_by(
+            case((InclusionRequest.relay_id.is_(None), 1), else_=0),
+            InclusionRequest.relay_id,
+            InclusionRequest.id.desc(),
+        )
         .all()
     )
+    inc_edit_list: list[dict[str, Any]] = []
+    for q in inc:
+        slugs: set[str] = set()
+        try:
+            raw = json.loads(q.supported_models_json or "[]")
+            if isinstance(raw, list):
+                slugs = {str(x) for x in raw}
+        except (json.JSONDecodeError, TypeError):
+            pass
+        inc_edit_list.append({"row": q, "supported_slugs": slugs})
     relay_edit_list = [
         {"relay": r, "rank_map": parse_rank_map_json(r.rank_models_json)}
         for r in rels
@@ -393,6 +414,8 @@ def page_admin(
             relay_edit_list=relay_edit_list,
             user_rows=urows,
             inc_rows=inc,
+            inc_edit_list=inc_edit_list,
+            inclusion_groups=_inclusion_model_groups(),
             tracked_models_list=TRACKED_MODELS,
             tracked_slugs=[m["slug"] for m in TRACKED_MODELS],
         ),
@@ -799,9 +822,89 @@ def admin_create_relay(
     db.add(r)
     db.commit()
     db.refresh(r)
+    ensure_inclusion_for_new_relay(db, r)
     d = r.to_public_dict()
     d["has_api_key"] = bool(r.api_key and r.api_key.strip())
     return d
+
+
+@router.post("/api/admin/inclusion/sync-from-relays")
+def admin_sync_inclusion_from_relays(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    u = _user_from_cookie(request)
+    if not u or not u.get("is_admin"):
+        raise HTTPException(403, detail="需要管理员")
+    out = sync_all_relays_to_inclusion(db)
+    return JSONResponse(out)
+
+
+def _apply_inclusion_admin(
+    row: InclusionRequest,
+    body: InclusionAdminUpdate,
+    db: Session,
+) -> None:
+    data = body.model_dump(exclude_unset=True)
+    if "site_name" in data and (
+        not data["site_name"] or not str(data["site_name"]).strip()
+    ):
+        raise HTTPException(400, detail="站点名称不能为空")
+    if "site_url" in data and (
+        not data["site_url"] or not str(data["site_url"]).strip()
+    ):
+        raise HTTPException(400, detail="站点 URL 不能为空")
+    if "founded_date" in data:
+        fd = data.pop("founded_date")
+        if fd is None:
+            row.founded_date = None
+        elif str(fd).strip() == "":
+            row.founded_date = None
+        else:
+            row.founded_date = date_cls.fromisoformat(str(fd).strip()[:10])
+    if "supported_models" in data:
+        sm = data.pop("supported_models")
+        allowed = set(inclusion_checkbox_slugs())
+        clean = [x for x in (sm or []) if x in allowed]
+        row.supported_models_json = json.dumps(clean, ensure_ascii=False)
+    if "probe_password" in data:
+        pw = data.pop("probe_password")
+        if pw is not None and str(pw).strip() != "":
+            row.probe_password = str(pw).strip()[:512]
+    strip_null = {
+        "signup_url",
+        "contact_person",
+        "contact",
+        "suggested_group",
+        "remark",
+        "probe_account",
+    }
+    for k, v in data.items():
+        if isinstance(v, str) and v.strip() == "" and k in strip_null:
+            setattr(row, k, None)
+        else:
+            setattr(row, k, v)
+
+
+@router.patch("/api/admin/inclusion-catalog/{req_id}")
+def admin_patch_inclusion_catalog(
+    request: Request,
+    req_id: int,
+    body: InclusionAdminUpdate,
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    u = _user_from_cookie(request)
+    if not u or not u.get("is_admin"):
+        raise HTTPException(403, detail="需要管理员")
+    row = (
+        db.query(InclusionRequest).filter(InclusionRequest.id == req_id).one_or_none()
+    )
+    if row is None:
+        raise HTTPException(404, detail="收录记录不存在")
+    _apply_inclusion_admin(row, body, db)
+    db.commit()
+    db.refresh(row)
+    return JSONResponse({"ok": True, "id": row.id})
 
 
 @router.patch("/api/admin/relays/{relay_id}")

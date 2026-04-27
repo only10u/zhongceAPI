@@ -41,6 +41,23 @@ class InclusionStatusUpdate(BaseModel):
     status: Literal["pending", "approved", "rejected"]
 
 
+class InclusionAdminUpdate(BaseModel):
+    """管理后台逐项编辑收录：字段全可选，未传不改；密码空串表示不修改。"""
+
+    site_name: str | None = Field(default=None, max_length=256)
+    site_url: str | None = Field(default=None, max_length=1024)
+    founded_date: str | None = Field(default=None, description="YYYY-MM-DD 或空清除")
+    signup_url: str | None = Field(default=None, max_length=1024)
+    contact_person: str | None = Field(default=None, max_length=256)
+    contact: str | None = Field(default=None, max_length=512)
+    suggested_group: str | None = Field(default=None, max_length=128)
+    remark: str | None = Field(default=None, max_length=8000)
+    supported_models: list[str] | None = None
+    probe_account: str | None = Field(default=None, max_length=512)
+    probe_password: str | None = Field(default=None, max_length=512)
+    status: Literal["pending", "approved", "rejected"] | None = None
+
+
 class Message(BaseModel):
     message: str
 

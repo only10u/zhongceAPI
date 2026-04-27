@@ -1471,6 +1471,35 @@ body.auth-modal-open .main:has(.auth-page-landing) { min-height: 0; }
   gap: 0.4rem 1.25rem;
 }
 .rank-shelf-item { font-size: 0.8rem; }
+.admin-inc-sync-card {
+  margin-bottom: 1.25rem;
+  padding: 1.1rem 1.25rem;
+}
+.admin-inc-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+  max-width: 1200px;
+}
+.admin-inc-detail {
+  padding: 0.35rem 0.85rem 0.85rem;
+}
+.admin-inc-detail > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.5rem 0;
+  font-weight: 600;
+}
+.admin-inc-detail > summary::-webkit-details-marker { display: none; }
+.admin-inc-sum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+.admin-inc-sum-id { font-variant-numeric: tabular-nums; color: var(--muted); }
+.admin-inc-sum-name { font-size: 1rem; }
 .admin-inc-wrap .data-table { font-size: 0.82rem; }
 .admin-inc-actions .btn-sm { margin: 0.1rem 0.2rem 0.1rem 0; }
 .td-ellipsis {

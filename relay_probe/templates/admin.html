@@ -161,14 +161,79 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
     </tbody>
   </table>
   </div>
-  <h2>收录申请</h2>
+  <h2>收录站点</h2>
+  <section class="card magic-card admin-inc-sync-card">
+    <h3 class="admin-relay-subh" style="margin-top:0">与中转库同步</h3>
+    <p class="small muted admin-relay-hint">为尚未绑定收录行的每个中转站创建一条「已通过」记录（名称、URL 等默认来自中转站）；已有绑定的不重复创建。新建「中转站」保存后也会自动补一条收录。</p>
+    <div class="admin-relay-actions">
+      <button type="button" class="btn primary" id="btn-inc-sync">同步所有中转站 → 收录库</button>
+      <span id="inc-sync-msg" class="msg" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <h3 class="admin-relay-subh">收录项逐项编辑</h3>
+  <p class="small muted">共 {{ inc_edit_list|length }} 条，展开后修改并保存即写入数据库。</p>
+  <div class="admin-inc-detail-list">
+    {% for item in inc_edit_list %}
+    {% set q = item.row %}
+    <details class="admin-inc-detail card magic-card">
+      <summary class="admin-inc-sum">
+        <span class="admin-inc-sum-id">#{{ q.id }}</span>
+        <span class="admin-inc-sum-name">{{ q.site_name }}</span>
+        {% if q.relay_id %}<span class="admin-kv-badge">绑定中转 #{{ q.relay_id }}</span>{% else %}<span class="admin-kv-badge is-off">自行申报</span>{% endif %}
+        <span class="muted small mono-sm">{{ q.status }}</span>
+      </summary>
+      <form class="form f-inc-admin f-relay-grid" autocomplete="off" data-inc-id="{{ q.id }}">
+        <label><span>站点名称</span><input name="site_name" type="text" required maxlength="256" value="{{ q.site_name }}"/></label>
+        <label class="span2"><span>站点 URL</span><input name="site_url" type="url" required maxlength="1024" value="{{ q.site_url }}"/></label>
+        <label><span>成立时间</span>
+          <input name="founded_date" type="date" value="{% if q.founded_date %}{{ q.founded_date.strftime('%Y-%m-%d') }}{% endif %}"/>
+        </label>
+        <label><span>注册 URL</span><input name="signup_url" type="url" maxlength="1024" value="{{ q.signup_url or '' }}"/></label>
+        <label><span>联系人</span><input name="contact_person" type="text" maxlength="256" value="{{ q.contact_person or '' }}"/></label>
+        <label><span>联系方式</span><input name="contact" type="text" maxlength="512" value="{{ q.contact or '' }}"/></label>
+        <label><span>建议分组</span><input name="suggested_group" type="text" maxlength="128" value="{{ q.suggested_group or '' }}"/></label>
+        <label class="span2"><span>备注</span><textarea name="remark" rows="2" maxlength="8000" class="in-magic">{{ q.remark or '' }}</textarea></label>
+        <div class="span2 rank-shelf-fieldset">
+          <div class="rank-shelf-label">支持模型（申报）</div>
+          <div class="rank-shelf-grid">
+            {% for label, models in inclusion_groups %}
+              {% for m in models %}
+              <label class="chkb rank-shelf-item"><input type="checkbox" name="supported_models" value="{{ m.slug }}" {% if m.slug in item.supported_slugs %}checked{% endif %}/> <span>{{ m.name_zh }}</span></label>
+              {% endfor %}
+            {% endfor %}
+          </div>
+        </div>
+        <label><span>探测账户</span><input name="probe_account" type="text" maxlength="512" value="{{ q.probe_account or '' }}" autocomplete="off"/></label>
+        <label><span>探测密码</span><input name="probe_password" type="password" placeholder="不修改请留空" maxlength="512" autocomplete="new-password"/></label>
+        <label><span>状态</span>
+          <select name="status">
+            <option value="pending" {% if q.status=='pending' %}selected{% endif %}>pending</option>
+            <option value="approved" {% if q.status=='approved' %}selected{% endif %}>approved</option>
+            <option value="rejected" {% if q.status=='rejected' %}selected{% endif %}>rejected</option>
+          </select>
+        </label>
+        {% if q.relay_id %}
+        <label class="span2"><span>绑定中转 ID</span><input type="text" readonly class="in-magic" value="{{ q.relay_id }}" title="由同步或新建中转自动生成"/></label>
+        {% endif %}
+        <div class="span2 admin-relay-actions">
+          <button type="submit" class="btn primary">保存本条收录</button>
+          <span class="msg f-inc-msg" aria-live="polite"></span>
+        </div>
+      </form>
+    </details>
+    {% endfor %}
+  </div>
+
+  <h3 class="admin-relay-subh">收录总览表</h3>
   <div class="table-wrap table-magic admin-inc-wrap">
     <table class="data-table data-table-lens">
-      <thead><tr><th>ID</th><th>站点</th><th>URL</th><th>成立</th><th>联系人</th><th>联络</th><th>探测账户</th><th>探测密码</th><th>模型申报</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>ID</th><th>绑定</th><th>站点</th><th>URL</th><th>成立</th><th>联系人</th><th>联络</th><th>探测账户</th><th>探测密码</th><th>模型申报</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
     <tbody>
     {% for q in inc_rows %}
       <tr data-inc-id="{{ q.id }}">
         <td>{{ q.id }}</td>
+        <td class="mono-sm">{% if q.relay_id %}#{{ q.relay_id }}{% else %}—{% endif %}</td>
         <td>{{ q.site_name }}</td>
         <td class="url mono-sm">{{ q.site_url }}</td>
         <td>{% if q.founded_date %}{{ q.founded_date }}{% else %}—{% endif %}</td>
@@ -354,6 +419,94 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
       }
     });
   });
+  (function () {
+    var bsync = document.getElementById("btn-inc-sync");
+    var smsg = document.getElementById("inc-sync-msg");
+    if (bsync) {
+      bsync.addEventListener("click", async function () {
+        if (smsg) smsg.textContent = "…";
+        var r = await fetch("/api/admin/inclusion/sync-from-relays", {
+          method: "POST",
+          credentials: "same-origin",
+        });
+        if (r.ok) {
+          try {
+            var j = await r.json();
+            if (smsg)
+              smsg.textContent =
+                "新建 " +
+                j.created +
+                " 条，已绑定跳过 " +
+                j.skipped +
+                "，中转共 " +
+                j.total_relays +
+                " 个。";
+            window.setTimeout(function () {
+              window.location.reload();
+            }, 500);
+          } catch (e) {
+            window.location.reload();
+          }
+          return;
+        }
+      if (smsg) {
+        try {
+          smsg.textContent = (await r.json()).detail || r.status;
+        } catch (ex) {
+          smsg.textContent = await r.text();
+        }
+      }
+      });
+    }
+    function nz(s) {
+      var t = (s || "").toString().trim();
+      return t ? t : null;
+    }
+    document.querySelectorAll(".f-inc-admin").forEach(function (form) {
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var msg = form.querySelector(".f-inc-msg");
+        if (msg) msg.textContent = "…";
+        var id = form.getAttribute("data-inc-id");
+        if (!id) return;
+        var fd = new FormData(form);
+        var body = {
+          site_name: (fd.get("site_name") || "").toString().trim(),
+          site_url: (fd.get("site_url") || "").toString().trim(),
+          founded_date: fd.get("founded_date")
+            ? fd.get("founded_date").toString()
+            : null,
+          signup_url: nz(fd.get("signup_url")),
+          contact_person: nz(fd.get("contact_person")),
+          contact: nz(fd.get("contact")),
+          suggested_group: nz(fd.get("suggested_group")),
+          remark: nz(fd.get("remark")),
+          supported_models: fd.getAll("supported_models"),
+          probe_account: nz(fd.get("probe_account")),
+          status: (fd.get("status") || "pending").toString(),
+        };
+        var pp = fd.get("probe_password");
+        if (pp && String(pp).trim()) body.probe_password = String(pp).trim();
+        var r = await fetch("/api/admin/inclusion-catalog/" + id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          credentials: "same-origin",
+        });
+        if (r.ok) {
+          if (msg) msg.textContent = "已保存";
+          return;
+        }
+        if (msg) {
+          try {
+            msg.textContent = (await r.json()).detail || r.status;
+          } catch (ex) {
+            msg.textContent = await r.text();
+          }
+        }
+      });
+    });
+  })();
   (function () {
     var fc = document.getElementById("f-admin-relay-create");
     var cms = document.getElementById("admin-create-msg");

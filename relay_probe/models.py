@@ -145,6 +145,14 @@ class InclusionRequest(Base):
     __tablename__ = "inclusion_requests"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # 绑定的中转站（由同步生成）；与用户自主提交的收录申请可同时存在
+    relay_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("relays.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
     site_name: Mapped[str] = mapped_column(String(256))
     site_url: Mapped[str] = mapped_column(String(1024))
     # 成立日期（按日）

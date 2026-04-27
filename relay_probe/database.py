@@ -67,6 +67,11 @@ def _ensure_inclusion_and_rank_json_columns() -> None:
         ),
     ]
     inc_alters = [
+        (
+            "relay_id",
+            # 旧库 ALTER 不加 REFERENCES，避免部分 SQLite 版本失败；逻辑层仍校验中继 ID
+            "ALTER TABLE inclusion_requests ADD COLUMN relay_id INTEGER UNIQUE",
+        ),
         ("founded_date", "ALTER TABLE inclusion_requests ADD COLUMN founded_date DATE"),
         ("signup_url", "ALTER TABLE inclusion_requests ADD COLUMN signup_url VARCHAR(1024)"),
         ("contact_person", "ALTER TABLE inclusion_requests ADD COLUMN contact_person VARCHAR(256)"),
