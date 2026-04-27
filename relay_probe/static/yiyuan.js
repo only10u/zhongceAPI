@@ -15,57 +15,73 @@
     return Math.round(n).toLocaleString("zh-CN");
   }
 
-  function calc() {
-    var pUsd = parseFloat(document.getElementById("yiyuan-p-usd").value);
-    var mult = parseFloat(document.getElementById("yiyuan-mult").value);
-    var rmb = parseFloat(document.getElementById("yiyuan-rmb").value);
-    var credit = parseFloat(document.getElementById("yiyuan-credit").value);
+  function readNum(id) {
+    var el = document.getElementById(id);
+    if (!el) return NaN;
+    var v = el.value;
+    if (v === "" || v == null) return NaN;
+    return parseFloat(v);
+  }
 
-    var elP = document.getElementById("yiyuan-v-purchase");
-    var elC = document.getElementById("yiyuan-v-consume");
-    var elT = document.getElementById("yiyuan-v-tokens");
-    var elRef = document.getElementById("yiyuan-v-yuan-per-m");
-    if (!elP || !elC || !elT || !elRef) return;
+  function setSpan(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  function calc() {
+    var pUsd = readNum("yiyuan-p-usd");
+    var mult = readNum("yiyuan-mult");
+    var rmb = readNum("yiyuan-rmb");
+    var credit = readNum("yiyuan-credit");
 
     if (!(rmb > 0) || !(credit > 0)) {
-      elP.textContent = "—";
-      elC.textContent = "—";
-      elT.textContent = "—";
-      elRef.textContent = "—";
+      setSpan("yiyuan-v-purchase", "—");
+      setSpan("yiyuan-v-consume", "—");
+      setSpan("yiyuan-v-tokens", "—");
+      setSpan("yiyuan-v-yuan-per-m", "—");
       return;
     }
 
     var purchasePerYuan = credit / rmb;
-    elP.textContent = fmt(purchasePerYuan) + " 额度/元";
+    setSpan("yiyuan-v-purchase", fmt(purchasePerYuan) + " 额度/元");
 
     if (!(pUsd >= 0) || !(mult >= 0)) {
-      elC.textContent = "—";
-      elT.textContent = "—";
-      elRef.textContent = "—";
+      setSpan("yiyuan-v-consume", "—");
+      setSpan("yiyuan-v-tokens", "—");
+      setSpan("yiyuan-v-yuan-per-m", "—");
       return;
     }
 
     var consumePerM = pUsd * mult;
-    elC.textContent = fmt(consumePerM) + "（与「官方标价×倍率」同口径的额度/百万）";
+    setSpan(
+      "yiyuan-v-consume",
+      fmt(consumePerM) + "（与「官方标价×倍率」同口径的额度/百万）"
+    );
 
     var finalYuanPerM = consumePerM / purchasePerYuan;
     var tokensPerOneYuan =
       finalYuanPerM > 0 ? 1e6 / finalYuanPerM : NaN;
-    elT.textContent = fmtTokens(tokensPerOneYuan);
-    elRef.textContent = fmt(finalYuanPerM);
+    setSpan("yiyuan-v-tokens", fmtTokens(tokensPerOneYuan));
+    setSpan("yiyuan-v-yuan-per-m", fmt(finalYuanPerM));
   }
 
-  var btn = document.getElementById("yiyuan-calc-btn");
-  if (btn) btn.addEventListener("click", calc);
-  ["yiyuan-p-usd", "yiyuan-mult", "yiyuan-rmb", "yiyuan-credit"].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) {
-      el.addEventListener("change", calc);
-      el.addEventListener("input", function () {
-        if (id === "yiyuan-rmb" || id === "yiyuan-credit") return;
-        calc();
-      });
-    }
-  });
-  calc();
+  function bind() {
+    var btn = document.getElementById("yiyuan-calc-btn");
+    if (btn) btn.addEventListener("click", calc);
+    ["yiyuan-p-usd", "yiyuan-mult", "yiyuan-rmb", "yiyuan-credit"].forEach(
+      function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("change", calc);
+        el.addEventListener("input", calc);
+      }
+    );
+    calc();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind);
+  } else {
+    bind();
+  }
 })();
