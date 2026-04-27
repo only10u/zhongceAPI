@@ -82,7 +82,7 @@ header.top {
 .top-left { display: flex; align-items: center; gap: 0.5rem; }
 .logo-magic {
   font-weight: 800;
-  font-size: 1.25rem;
+  font-size: 1.42rem;
   letter-spacing: -0.02em;
   color: var(--fg);
   background: linear-gradient(135deg, var(--fg) 0%, #a78bfa 100%);
@@ -284,6 +284,10 @@ footer.foot {
 @media (prefers-reduced-motion: reduce) {
   .brand-title-shimmer { animation: none; }
 }
+.hero-magic .brand-title-shimmer {
+  font-size: clamp(3.1rem, 9vw, 5rem);
+  line-height: 1.06;
+}
 @keyframes brand-shimmer-sweep {
   0% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
@@ -397,6 +401,8 @@ footer.foot {
 .h1-magic.h1-rank { -webkit-text-fill-color: initial; }
 .rank-sub { text-align: center; color: var(--muted); margin: 0; max-width: 40rem; margin-left: auto; margin-right: auto; font-size: 0.92rem; }
 .rank-toolbar { margin: 0.75rem 0 1.5rem; }
+.rank-pricing-hint { margin-top: 0.35rem; line-height: 1.55; max-width: 56rem; }
+.matrix-pricing-hint { margin-bottom: 0.5rem; max-width: 56rem; line-height: 1.5; }
 .tool-meta { line-height: 1.5; }
 .period-rank { margin-top: 2.25rem; }
 .period-rank:first-of-type { margin-top: 0.75rem; }
@@ -1318,12 +1324,134 @@ body.auth-modal-open .main:has(.auth-page-landing) { min-height: 0; }
 .inc-lookup-form label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; }
 .inc-lookup-out { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--border); }
 .inclusion-status-page .inc-status-card { margin-top: 0.5rem; }
+.inc-submit-row-rank { align-items: center; }
+.inc-pw-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+.inc-pw-wrap .in-magic { flex: 1; min-width: 0; }
+.inc-pw-toggle {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.row-clickable { cursor: pointer; }
+.data-table tbody tr.row-clickable:hover {
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.site-row-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.site-row-modal[hidden] { display: none !important; }
+.site-row-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+.site-row-modal-card {
+  position: relative;
+  z-index: 1;
+  max-width: min(640px, 100%);
+  max-height: min(80vh, 720px);
+  overflow: auto;
+  padding: 1.25rem 1.35rem;
+  border-radius: 14px;
+}
+.site-row-modal-x {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.site-row-modal-h { margin: 0 2rem 0.75rem 0; font-size: 1.12rem; }
+.site-row-modal-pre {
+  margin: 0;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--muted);
+}
 .workspace-page .ws-live-ribbon {
   max-width: 1100px;
   margin: 1.25rem auto 0;
   padding: 0 1.5rem;
 }
 .workspace-page .mt { margin-top: 1rem; }
+
+.model-block-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+.model-block-toolbar .rank-sort-label,
+.legacy-sort-bar .rank-sort-label,
+.home-detect-head-row .rank-sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+.rank-sort-select {
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.82rem;
+  max-width: 12.5rem;
+}
+.legacy-sort-bar { margin: 0.5rem 0 0.75rem; }
+.matrix-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.35rem;
+}
+.matrix-section-head .h2-magic { margin-bottom: 0; }
+.home-detect-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+.home-detect-sort-wrap { margin: 0; }
+.td-mono-sm {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-relay-create {
+  margin-bottom: 1.25rem;
+  padding: 1.1rem 1.25rem;
+}
 
 /* —— 管理：分线上架 */
 .rank-shelf-fieldset {

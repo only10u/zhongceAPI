@@ -3,17 +3,13 @@
  * 排行页：轮询 dashboard
  */
 (function () {
-  const MODEL_SLUGS = [
-    "opus-47",
-    "opus-46",
-    "sonnet-46",
-    "gpt-55",
-    "gpt-54",
-    "gemini-31-pro",
-  ];
+  const MODEL_SLUGS = ["opus-47", "opus-46", "sonnet-46"];
   const LS_LAT = "zhongce_probe_lat_v1";
   const chartState = { bar: null, doughnut: null, line: null };
   var lastProbeSnapshot = null;
+  var lastRankBundle = null;
+  var lastDashboardHomeDetect = null;
+  var lastMatrixPayload = null;
 
   function setText(id, t) {
     const el = document.getElementById(id);
@@ -27,6 +23,190 @@
     } catch {
       return iso;
     }
+  }
+
+  function numPriceSortKey(v) {
+    if (v == null || v === "") return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  function sortModelRows(rows, mode) {
+    if (!rows || !rows.length) return rows || [];
+    if (!mode || mode === "default") return rows;
+    var arr = rows.map(function (r) {
+      return Object.assign({}, r);
+    });
+    function pk(r) {
+      return numPriceSortKey(r.price_sort_key);
+    }
+    function orate(r) {
+      return typeof r.online_rate === "number" ? r.online_rate : 0;
+    }
+    function latv(r) {
+      var x = r.avg_latency_ms;
+      return x != null && isFinite(Number(x)) ? Number(x) : 1e9;
+    }
+    function nameCmp(a, b) {
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    }
+    if (mode === "price_desc") {
+      arr.sort(function (a, b) {
+        var pa = pk(a),
+          pb = pk(b);
+        if (pa == null && pb == null) return nameCmp(a, b);
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        if (pb !== pa) return pb - pa;
+        return nameCmp(a, b);
+      });
+    } else if (mode === "price_asc") {
+      arr.sort(function (a, b) {
+        var pa = pk(a),
+          pb = pk(b);
+        if (pa == null && pb == null) return nameCmp(a, b);
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        if (pa !== pb) return pa - pb;
+        return nameCmp(a, b);
+      });
+    } else if (mode === "perf_desc") {
+      arr.sort(function (a, b) {
+        var oa = orate(a),
+          ob = orate(b);
+        if (ob !== oa) return ob - oa;
+        return latv(a) - latv(b);
+      });
+    } else if (mode === "perf_asc") {
+      arr.sort(function (a, b) {
+        var oa = orate(a),
+          ob = orate(b);
+        if (oa !== ob) return oa - ob;
+        return latv(b) - latv(a);
+      });
+    }
+    for (var i = 0; i < arr.length; i++) arr[i].rank = i + 1;
+    return arr;
+  }
+
+  function sortLegacyRows(rows, mode) {
+    if (!rows || !rows.length) return rows || [];
+    if (!mode || mode === "default") return rows;
+    var arr = rows.map(function (r) {
+      return Object.assign({}, r);
+    });
+    function pk(r) {
+      return numPriceSortKey(r.price_sort_key);
+    }
+    function sr(r) {
+      return typeof r.success_rate === "number" ? r.success_rate : 0;
+    }
+    function latv(r) {
+      var x = r.avg_latency_ms;
+      return x != null && isFinite(Number(x)) ? Number(x) : 1e9;
+    }
+    function nameCmp(a, b) {
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    }
+    if (mode === "price_desc") {
+      arr.sort(function (a, b) {
+        var pa = pk(a),
+          pb = pk(b);
+        if (pa == null && pb == null) return nameCmp(a, b);
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        if (pb !== pa) return pb - pa;
+        return nameCmp(a, b);
+      });
+    } else if (mode === "price_asc") {
+      arr.sort(function (a, b) {
+        var pa = pk(a),
+          pb = pk(b);
+        if (pa == null && pb == null) return nameCmp(a, b);
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        if (pa !== pb) return pa - pb;
+        return nameCmp(a, b);
+      });
+    } else if (mode === "perf_desc") {
+      arr.sort(function (a, b) {
+        var sa = sr(a),
+          sb = sr(b);
+        if (sb !== sa) return sb - sa;
+        return latv(a) - latv(b);
+      });
+    } else if (mode === "perf_asc") {
+      arr.sort(function (a, b) {
+        var sa = sr(a),
+          sb = sr(b);
+        if (sa !== sb) return sa - sb;
+        return latv(b) - latv(a);
+      });
+    }
+    for (var i = 0; i < arr.length; i++) arr[i].rank = i + 1;
+    return arr;
+  }
+
+  function matrixPerfAvg(row) {
+    var by = row.by_slug || {};
+    var sum = 0,
+      n = 0;
+    MODEL_SLUGS.forEach(function (s) {
+      var c = by[s];
+      if (!c) return;
+      var p = c.online_rate_pct;
+      if (typeof p === "number") {
+        sum += p;
+        n++;
+      } else if (typeof p === "string") {
+        var v = parseFloat(String(p).replace("%", ""));
+        if (!isNaN(v)) {
+          sum += v;
+          n++;
+        }
+      }
+    });
+    return n ? sum / n : 0;
+  }
+
+  function sortMatrixRows(rows, mode) {
+    if (!rows || !rows.length) return rows || [];
+    if (!mode || mode === "default") return rows;
+    var arr = rows.slice();
+    function pk(r) {
+      return numPriceSortKey(r.price_sort_key);
+    }
+    function nameCmp(a, b) {
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    }
+    if (mode === "price_desc") {
+      arr.sort(function (a, b) {
+        var pa = pk(a),
+          pb = pk(b);
+        if (pa == null && pb == null) return nameCmp(a, b);
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        return pb - pa;
+      });
+    } else if (mode === "price_asc") {
+      arr.sort(function (a, b) {
+        var pa = pk(a),
+          pb = pk(b);
+        if (pa == null && pb == null) return nameCmp(a, b);
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        return pa - pb;
+      });
+    } else if (mode === "perf_desc") {
+      arr.sort(function (a, b) {
+        return matrixPerfAvg(b) - matrixPerfAvg(a);
+      });
+    } else if (mode === "perf_asc") {
+      arr.sort(function (a, b) {
+        return matrixPerfAvg(a) - matrixPerfAvg(b);
+      });
+    }
+    return arr;
   }
 
   function buildUptimeBarHost() {
@@ -59,73 +239,191 @@
     return x;
   }
 
-  function initMatrix() {
+  function setRowDetail(tr, obj) {
+    try {
+      tr.dataset.rowDetail = JSON.stringify(obj);
+      tr.classList.add("row-clickable");
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function initSiteRowDetailModal() {
+    var modal = document.getElementById("site-row-modal");
+    if (!modal) return;
+    var titleEl = document.getElementById("site-row-modal-title");
+    var preEl = document.getElementById("site-row-modal-body");
+    function close() {
+      modal.hidden = true;
+    }
+    modal.querySelectorAll("[data-site-modal-close]").forEach(function (node) {
+      node.addEventListener("click", function (e) {
+        e.preventDefault();
+        close();
+      });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !modal.hidden) close();
+    });
+    document.body.addEventListener("click", function (e) {
+      var tr = e.target.closest("tbody tr[data-row-detail]");
+      if (!tr) return;
+      if (e.target.closest("a")) return;
+      var raw = tr.getAttribute("data-row-detail");
+      if (!raw) return;
+      var obj;
+      try {
+        obj = JSON.parse(raw);
+      } catch (err) {
+        return;
+      }
+      if (titleEl) {
+        titleEl.textContent =
+          (obj && obj.name && String(obj.name)) ||
+          (obj && obj.site_name && String(obj.site_name)) ||
+          "—";
+      }
+      if (preEl) preEl.textContent = JSON.stringify(obj, null, 2);
+      modal.hidden = false;
+    });
+  }
+
+  function initIncPwToggle() {
+    document.querySelectorAll(".inc-pw-toggle[data-pw-toggle]").forEach(function (btn) {
+      var tid = btn.getAttribute("data-pw-toggle");
+      var inp = tid ? document.getElementById(tid) : null;
+      if (!inp) return;
+      btn.addEventListener("click", function () {
+        inp.type = inp.type === "password" ? "text" : "password";
+      });
+    });
+  }
+
+  function i18nTh(cls, i18nKey, zhText) {
+    var th = document.createElement("th");
+    if (cls) th.className = cls;
+    th.setAttribute("data-i18n", i18nKey);
+    th.textContent = zhText;
+    return th;
+  }
+
+  function renderMatrixTable(d) {
     const tb = document.getElementById("matrix-tbody");
     const th = document.getElementById("matrix-thead");
-    if (!tb || !th) return;
+    if (!tb || !th || !d) return;
+    var mode =
+      (document.getElementById("matrix-sort") || {}).value || "default";
+    setText("matrix-updated", fmtTime(d.updated_at));
+    th.textContent = "";
+    tb.textContent = "";
+    const htr = el("tr");
+    htr.appendChild(i18nTh("th-site", "col_site2", "名称"));
+    htr.appendChild(i18nTh("th-matrix th-mx-price", "col_in_usd", "输入/$"));
+    htr.appendChild(i18nTh("th-matrix th-mx-price", "col_out_usd", "输出/$"));
+    htr.appendChild(i18nTh("th-matrix th-mx-price", "col_cny_token", "1人民币=X TOKEN"));
+    (d.models_meta || []).forEach(function (m) {
+      var short = m.name_zh || m.slug;
+      if (short.length > 7) short = short.slice(0, 6) + "…";
+      htr.appendChild(el("th", "th-matrix", short));
+    });
+    htr.appendChild(i18nTh("th-base", "col_base", "Base"));
+    th.appendChild(htr);
+    try {
+      document.dispatchEvent(new Event("zhongce-refresh-i18n"));
+    } catch (e) {
+      /* ignore */
+    }
+    const rows = sortMatrixRows(d.rows || [], mode);
+    if (!rows.length) {
+      var tr0 = el("tr");
+      var td0 = el("td", "muted", "暂无已收录站点，请用 seed 或管理接口添加");
+      td0.colSpan = (d.models_meta || []).length + 5;
+      tr0.appendChild(td0);
+      tb.appendChild(tr0);
+      return;
+    }
+    rows.forEach(function (row) {
+      var tr = el("tr", "row-flash");
+      const td0 = el("td", "td-mat-name");
+      if (row.base_url) {
+        var axm = document.createElement("a");
+        axm.className = "site-link";
+        axm.href = row.base_url;
+        axm.target = "_blank";
+        axm.rel = "noopener noreferrer";
+        axm.textContent = row.name;
+        td0.appendChild(axm);
+      } else {
+        td0.textContent = row.name;
+      }
+      tr.appendChild(td0);
+      tr.appendChild(
+        el("td", "td-mat td-mono-sm", String(row.pricing_input_usd || "—"))
+      );
+      tr.appendChild(
+        el("td", "td-mat td-mono-sm", String(row.pricing_output_usd || "—"))
+      );
+      tr.appendChild(
+        el("td", "td-mat td-mx-cny", String(row.cny_token_line || "—"))
+      );
+      (d.models_meta || []).forEach(function (m) {
+        var cell = row.by_slug && row.by_slug[m.slug];
+        var txt = "—";
+        if (cell && cell.samples) {
+          txt =
+            typeof cell.online_rate_pct === "number"
+              ? cell.online_rate_pct + "%"
+              : String(cell.status || "—");
+        } else if (cell && cell.status) {
+          txt = cell.status;
+        }
+        tr.appendChild(
+          el(
+            "td",
+            "td-mat " + (cell && cell.status_class ? cell.status_class : ""),
+            txt
+          )
+        );
+      });
+      var tdb = el("td", "url");
+      tdb.appendChild(el("small", null, row.base_url));
+      tr.appendChild(tdb);
+      setRowDetail(tr, {
+        kind: "matrix",
+        relay_id: row.relay_id,
+        name: row.name,
+        base_url: row.base_url,
+        group: row.group,
+        by_slug: row.by_slug || {},
+        pricing_input_usd: row.pricing_input_usd,
+        pricing_output_usd: row.pricing_output_usd,
+        cny_token_line: row.cny_token_line,
+        price_sort_key: row.price_sort_key,
+      });
+      tb.appendChild(tr);
+    });
+  }
+
+  function initMatrix() {
+    const tb = document.getElementById("matrix-tbody");
+    if (!tb) return;
     var poll = function () {
       fetch("/api/relay-matrix")
         .then(function (r) {
           return r.json();
         })
         .then(function (d) {
-          setText("matrix-updated", fmtTime(d.updated_at));
-          th.textContent = "";
-          tb.textContent = "";
-          const htr = el("tr");
-          htr.appendChild(el("th", "th-site", "名称"));
-          (d.models_meta || []).forEach(function (m) {
-            var short = m.name_zh || m.slug;
-            if (short.length > 7) short = short.slice(0, 6) + "…";
-            htr.appendChild(el("th", "th-matrix", short));
-          });
-          htr.appendChild(el("th", "th-base", "Base"));
-          th.appendChild(htr);
-          const rows = d.rows || [];
-          if (!rows.length) {
-            var tr0 = el("tr");
-            var td0 = el("td", "muted", "暂无已收录站点，请用 seed 或管理接口添加");
-            td0.colSpan = (d.models_meta || []).length + 2;
-            tr0.appendChild(td0);
-            tb.appendChild(tr0);
-            return;
-          }
-          rows.forEach(function (row) {
-            var tr = el("tr", "row-flash");
-            const td0 = el("td", "td-mat-name");
-            if (row.base_url) {
-              var axm = document.createElement("a");
-              axm.className = "site-link";
-              axm.href = row.base_url;
-              axm.target = "_blank";
-              axm.rel = "noopener noreferrer";
-              axm.textContent = row.name;
-              td0.appendChild(axm);
-            } else {
-              td0.textContent = row.name;
-            }
-            tr.appendChild(td0);
-            (d.models_meta || []).forEach(function (m) {
-              var cell = row.by_slug && row.by_slug[m.slug];
-              var txt = "—";
-              if (cell && cell.samples) {
-                txt =
-                  typeof cell.online_rate_pct === "number"
-                    ? cell.online_rate_pct + "%"
-                    : String(cell.status || "—");
-              } else if (cell && cell.status) {
-                txt = cell.status;
-              }
-              tr.appendChild(el("td", "td-mat " + (cell && cell.status_class ? cell.status_class : ""), txt));
-            });
-            var tdb = el("td", "url");
-            tdb.appendChild(el("small", null, row.base_url));
-            tr.appendChild(tdb);
-            tb.appendChild(tr);
-          });
+          lastMatrixPayload = d;
+          renderMatrixTable(d);
         })
         .catch(function () {});
     };
+    var sortEl = document.getElementById("matrix-sort");
+    if (sortEl) {
+      sortEl.addEventListener("change", function () {
+        if (lastMatrixPayload) renderMatrixTable(lastMatrixPayload);
+      });
+    }
     poll();
     setInterval(poll, 15000);
   }
@@ -180,6 +478,7 @@
                 } else {
                   tdn.textContent = x.name || "—";
                 }
+                setRowDetail(tr, { kind: "legacy_top", ...x });
                 tb.appendChild(tr);
               });
             }
@@ -247,6 +546,7 @@
             } else {
               tdn.textContent = x.name || "—";
             }
+            setRowDetail(tr, { kind: "legacy_top", ...x });
             tb.appendChild(tr);
           });
         })
@@ -315,7 +615,8 @@
       },
     });
     const hits = svc.model_hits != null ? svc.model_hits : 0;
-    const tot = svc.model_tracked != null ? svc.model_tracked : 3;
+    const tot =
+      svc.model_tracked != null ? svc.model_tracked : (det.length || 1);
     chartState.doughnut = new Chart(elD, {
       type: "doughnut",
       data: {
@@ -555,7 +856,7 @@
       tr.appendChild(
         (function () {
           const td = el("td", "muted", "暂无数据");
-          td.colSpan = 8;
+          td.colSpan = 10;
           return td;
         })()
       );
@@ -586,7 +887,13 @@
       }
       tr.appendChild(tdN);
       tr.appendChild(el("td", null, row.group || "—"));
-      tr.appendChild(el("td", "td-price", String(row.price || "—")));
+      tr.appendChild(
+        el("td", "td-mono-sm", String(row.pricing_input_usd || "—"))
+      );
+      tr.appendChild(
+        el("td", "td-mono-sm", String(row.pricing_output_usd || "—"))
+      );
+      tr.appendChild(el("td", "td-price", String(row.cny_token_line || "—")));
       const online =
         row.samples && typeof row.online_rate_pct === "number"
           ? row.online_rate_pct + "%"
@@ -598,7 +905,11 @@
       const tdU = el("td", "td-uptime");
       const g = el("div", "uptime-grid");
       g.setAttribute("role", "img");
-      const tip = (row.status || "—") + (row.samples && row.online_rate_pct != null ? " · " + row.online_rate_pct + "%" : "");
+      const tip =
+        (row.status || "—") +
+        (row.samples && row.online_rate_pct != null
+          ? " · " + row.online_rate_pct + "%"
+          : "");
       g.setAttribute("title", tip);
       g.setAttribute("aria-label", tip);
       const keys = row.uptime_block_keys || [];
@@ -608,6 +919,7 @@
       }
       tdU.appendChild(g);
       tr.appendChild(tdU);
+      setRowDetail(tr, { kind: "rank_model", ...row });
       tbody.appendChild(tr);
     });
   }
@@ -635,6 +947,15 @@
         tdn.appendChild(ax);
       } else tdn.textContent = x.name;
       tr.appendChild(tdn);
+      tr.appendChild(
+        el("td", "td-mono-sm", x.pricing_input_usd ? String(x.pricing_input_usd) : "—")
+      );
+      tr.appendChild(
+        el("td", "td-mono-sm", x.pricing_output_usd ? String(x.pricing_output_usd) : "—")
+      );
+      tr.appendChild(
+        el("td", "td-price", x.cny_token_line ? String(x.cny_token_line) : "—")
+      );
       const rate =
         x.samples_in_window && x.success_rate != null
           ? (Math.round(x.success_rate * 1000) / 10).toFixed(1) + "%"
@@ -653,6 +974,7 @@
         tdu.appendChild(bx);
       }
       tr.appendChild(tdu);
+      setRowDetail(tr, { kind: "rank_legacy", ...x });
       tbody.appendChild(tr);
     });
   }
@@ -666,28 +988,52 @@
       return;
     }
     const sec = parseInt(root.getAttribute("data-poll-sec") || "8", 10) * 1000;
+    function applyRankBundle(d) {
+      lastRankBundle = d;
+      setText("rank-stat-updated", fmtTime(d.updated_at));
+      RANK_BUNDLE_KEYS.forEach((pk) => {
+        const b = d[pk];
+        if (!b) return;
+        const meta = b.models_meta;
+        (meta && meta.length ? meta : MODEL_SLUGS.map((s) => ({ slug: s }))
+        ).forEach((m) => {
+          const tb = document.getElementById("tb-" + pk + "-model-" + m.slug);
+          var sel = document.querySelector(
+            '.rank-sort-select[data-rank-table="model"][data-period="' +
+              pk +
+              '"][data-slug="' +
+              m.slug +
+              '"]'
+          );
+          var mode = sel ? sel.value : "default";
+          var raw = b.by_model && b.by_model[m.slug];
+          var rows = sortModelRows(raw || [], mode);
+          if (tb) renderModelRows(tb, rows);
+        });
+        const tbleg = document.getElementById("tb-legacy-" + pk);
+        var sleg = document.querySelector(
+          '.rank-sort-select[data-rank-table="legacy"][data-period="' + pk + '"]'
+        );
+        var lm = sleg ? sleg.value : "default";
+        if (tbleg) renderLegacyRows(tbleg, sortLegacyRows(b.legacy || [], lm));
+      });
+    }
     const poll = () => {
       fetch("/api/rank-bundles")
         .then((r) => r.json())
         .then((d) => {
-          setText("rank-stat-updated", fmtTime(d.updated_at));
-          RANK_BUNDLE_KEYS.forEach((pk) => {
-            const b = d[pk];
-            if (!b) return;
-            const meta = b.models_meta;
-            (meta && meta.length
-              ? meta
-              : MODEL_SLUGS.map((s) => ({ slug: s }))
-            ).forEach((m) => {
-              const tb = document.getElementById("tb-" + pk + "-model-" + m.slug);
-              if (tb) renderModelRows(tb, b.by_model && b.by_model[m.slug]);
-            });
-            const tbleg = document.getElementById("tb-legacy-" + pk);
-            if (tbleg) renderLegacyRows(tbleg, b.legacy);
-          });
+          applyRankBundle(d);
         })
         .catch(() => {});
     };
+    document.body.addEventListener("change", function (e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains("rank-sort-select"))
+        return;
+      if (t.getAttribute("data-home-detect-sort") || t.getAttribute("data-matrix-sort"))
+        return;
+      if (lastRankBundle) applyRankBundle(lastRankBundle);
+    });
     poll();
     setInterval(poll, sec);
   }
@@ -882,66 +1228,86 @@
   function initHomeDetectRank() {
     var tb = document.getElementById("home-detect-rank-tbody");
     if (!tb) return;
+    var sortSel = document.getElementById("home-detect-sort");
+    function paint(d) {
+      setText("home-detect-rank-updated", fmtTime(d.updated_at));
+      var raw = (d.by_model && d.by_model[HOME_DETECT_RANK_SLUG]) || [];
+      var mode = sortSel ? sortSel.value : "default";
+      var rows = sortModelRows(raw, mode).slice(0, HOME_DETECT_RANK_LIMIT);
+      tb.textContent = "";
+      if (!rows.length) {
+        var tr0 = el("tr");
+        var td0 = el("td", "muted", "暂无数据");
+        td0.colSpan = 8;
+        tr0.appendChild(td0);
+        tb.appendChild(tr0);
+        return;
+      }
+      rows.forEach(function (row) {
+        var tr = el("tr", "row-flash");
+        tr.appendChild(
+          (function () {
+            var td = el("td", "td-rank");
+            td.appendChild(el("span", "rank-pill", "#" + row.rank));
+            return td;
+          })()
+        );
+        var tdN = el("td", "td-name");
+        if (row.base_url) {
+          var a = document.createElement("a");
+          a.className = "site-link";
+          a.href = row.base_url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.textContent = row.name || "—";
+          tdN.appendChild(a);
+        } else {
+          tdN.textContent = row.name || "—";
+        }
+        tr.appendChild(tdN);
+        tr.appendChild(
+          el("td", "td-mono-sm", String(row.pricing_input_usd || "—"))
+        );
+        tr.appendChild(
+          el("td", "td-mono-sm", String(row.pricing_output_usd || "—"))
+        );
+        tr.appendChild(el("td", "td-price", String(row.cny_token_line || "—")));
+        var online =
+          row.samples && typeof row.online_rate_pct === "number"
+            ? row.online_rate_pct + "%"
+            : "—";
+        tr.appendChild(el("td", "td-metric", online));
+        var lat = row.avg_latency_ms != null ? String(row.avg_latency_ms) : "—";
+        tr.appendChild(el("td", "td-metric td-lat", lat));
+        var tdSt = el("td", "td-run");
+        tdSt.appendChild(
+          el(
+            "span",
+            "run-badge " + (row.status_class || "st-muted"),
+            String(row.status || "—")
+          )
+        );
+        tr.appendChild(tdSt);
+        setRowDetail(tr, { kind: "home_detect_rank", ...row });
+        tb.appendChild(tr);
+      });
+    }
     var poll = function () {
       fetch("/api/dashboard?window_hours=24")
         .then(function (r) {
           return r.json();
         })
         .then(function (d) {
-          setText("home-detect-rank-updated", fmtTime(d.updated_at));
-          var rows = (d.by_model && d.by_model[HOME_DETECT_RANK_SLUG]) || [];
-          tb.textContent = "";
-          if (!rows.length) {
-            var tr0 = el("tr");
-            var td0 = el("td", "muted", "暂无数据");
-            td0.colSpan = 5;
-            tr0.appendChild(td0);
-            tb.appendChild(tr0);
-            return;
-          }
-          rows.slice(0, HOME_DETECT_RANK_LIMIT).forEach(function (row) {
-            var tr = el("tr", "row-flash");
-            tr.appendChild(
-              (function () {
-                var td = el("td", "td-rank");
-                td.appendChild(el("span", "rank-pill", "#" + row.rank));
-                return td;
-              })()
-            );
-            var tdN = el("td", "td-name");
-            if (row.base_url) {
-              var a = document.createElement("a");
-              a.className = "site-link";
-              a.href = row.base_url;
-              a.target = "_blank";
-              a.rel = "noopener noreferrer";
-              a.textContent = row.name || "—";
-              tdN.appendChild(a);
-            } else {
-              tdN.textContent = row.name || "—";
-            }
-            tr.appendChild(tdN);
-            var online =
-              row.samples && typeof row.online_rate_pct === "number"
-                ? row.online_rate_pct + "%"
-                : "—";
-            tr.appendChild(el("td", "td-metric", online));
-            var lat = row.avg_latency_ms != null ? String(row.avg_latency_ms) : "—";
-            tr.appendChild(el("td", "td-metric td-lat", lat));
-            var tdSt = el("td", "td-run");
-            tdSt.appendChild(
-              el(
-                "span",
-                "run-badge " + (row.status_class || "st-muted"),
-                String(row.status || "—")
-              )
-            );
-            tr.appendChild(tdSt);
-            tb.appendChild(tr);
-          });
+          lastDashboardHomeDetect = d;
+          paint(d);
         })
         .catch(function () {});
     };
+    if (sortSel) {
+      sortSel.addEventListener("change", function () {
+        if (lastDashboardHomeDetect) paint(lastDashboardHomeDetect);
+      });
+    }
     poll();
     setInterval(poll, 12000);
   }
@@ -968,6 +1334,7 @@
   }
 
   function go() {
+    initSiteRowDetailModal();
     initWorkspaceBroadcast();
     initHomeBroadcast();
     initHvoyCards();
@@ -979,5 +1346,6 @@
     initRankTabs();
     initRankPoll();
     initInclusion();
+    initIncPwToggle();
   }
 })();

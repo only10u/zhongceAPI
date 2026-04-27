@@ -38,6 +38,15 @@ def _ensure_relay_columns() -> None:
         ("site_price", "ALTER TABLE relays ADD COLUMN site_price VARCHAR(64)"),
         ("dilution_override", "ALTER TABLE relays ADD COLUMN dilution_override FLOAT"),
         ("dilution_label", "ALTER TABLE relays ADD COLUMN dilution_label VARCHAR(64)"),
+        (
+            "pricing_input_usd",
+            "ALTER TABLE relays ADD COLUMN pricing_input_usd VARCHAR(64)",
+        ),
+        (
+            "pricing_output_usd",
+            "ALTER TABLE relays ADD COLUMN pricing_output_usd VARCHAR(64)",
+        ),
+        ("price_sort_key", "ALTER TABLE relays ADD COLUMN price_sort_key FLOAT"),
     ]
     with engine.begin() as conn:
         r = conn.execute(text("PRAGMA table_info(relays)"))
@@ -63,6 +72,8 @@ def _ensure_inclusion_and_rank_json_columns() -> None:
         ("contact_person", "ALTER TABLE inclusion_requests ADD COLUMN contact_person VARCHAR(256)"),
         ("suggested_group", "ALTER TABLE inclusion_requests ADD COLUMN suggested_group VARCHAR(128)"),
         ("supported_models_json", "ALTER TABLE inclusion_requests ADD COLUMN supported_models_json TEXT"),
+        ("probe_account", "ALTER TABLE inclusion_requests ADD COLUMN probe_account VARCHAR(512)"),
+        ("probe_password", "ALTER TABLE inclusion_requests ADD COLUMN probe_password VARCHAR(512)"),
     ]
     with engine.begin() as conn:
         r = conn.execute(text("PRAGMA table_info(relays)"))

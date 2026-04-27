@@ -22,7 +22,7 @@
     <p class="hero-desc i18n-en">OpenAI-compatible gateway checks from <code>/v1/models</code> substring matching. <strong>Live check</strong> below runs a real one-off probe; full rankings stay on the rank page.</p>
     <div class="hero-cta">
       <a class="btn btn-magic primary" href="/rank" data-i18n="home_cta">进入中转站排行</a>
-      <a class="btn btn-magic" href="/inclusion" data-i18n="home_cta2">申请收录</a>
+      <a class="btn btn-magic" href="/rank#inclusion" data-i18n="home_cta2">申请收录</a>
     </div>
   </section>
 
@@ -201,8 +201,17 @@
 
     <section class="home-detect-rank magic-card float-card" id="home-detect-rank" aria-label="检测情况排名">
       <h2 class="h2-magic"><span data-i18n="home_detect_rank_h2">主评线检测排名</span></h2>
-      <div class="detector-hvoy-head">
+      <div class="detector-hvoy-head home-detect-head-row">
         <span class="detector-sec-title" data-i18n="home_detect_rank_sub">24 小时窗 · Opus 4.7</span>
+        <label class="rank-sort-label muted small home-detect-sort-wrap"><span data-i18n="sort_label">排行</span>
+          <select id="home-detect-sort" class="rank-sort-select" data-home-detect-sort="1" title="排序">
+            <option value="default" selected data-i18n="sort_default">综合</option>
+            <option value="price_desc" data-i18n="sort_price_desc">价格从高到低</option>
+            <option value="price_asc" data-i18n="sort_price_asc">价格从低到高</option>
+            <option value="perf_desc" data-i18n="sort_perf_desc">性能从高到低</option>
+            <option value="perf_asc" data-i18n="sort_perf_asc">性能从低到高</option>
+          </select>
+        </label>
         <a class="detector-hist-link" href="/rank#m-day-opus-47" data-i18n="home_detect_rank_link">完整排行</a>
       </div>
       <p class="small muted" id="home-detect-rank-updated">—</p>
@@ -212,6 +221,9 @@
             <tr>
               <th data-i18n="col_rank">排名</th>
               <th data-i18n="col_site">站点</th>
+              <th data-i18n="col_in_usd">输入/$</th>
+              <th data-i18n="col_out_usd">输出/$</th>
+              <th data-i18n="col_cny_token">1人民币=X TOKEN</th>
               <th data-i18n="col_online">在线率</th>
               <th data-i18n="col_lat">延迟 (ms)</th>
               <th data-i18n="col_run">运行状态</th>
@@ -224,7 +236,19 @@
   </div>
 
   <section class="section-block matrix-section" id="matrix-section" aria-label="本库已收录站点">
-    <h2 class="h2-magic" data-i18n="matrix_h2">下列为本库已收录站点</h2>
+    <p class="small muted matrix-pricing-hint" data-i18n="pricing_cols_hint">定价三列与全站一致：「输入/$」「输出/$」、「1人民币=X TOKEN」（后台维护）。</p>
+    <div class="matrix-section-head">
+      <h2 class="h2-magic" data-i18n="matrix_h2">下列为本库已收录站点</h2>
+      <label class="rank-sort-label muted small"><span data-i18n="sort_label">排行</span>
+        <select id="matrix-sort" class="rank-sort-select" data-matrix-sort="1" title="排序">
+          <option value="default" selected data-i18n="sort_default">综合</option>
+          <option value="price_desc" data-i18n="sort_price_desc">价格从高到低</option>
+          <option value="price_asc" data-i18n="sort_price_asc">价格从低到高</option>
+          <option value="perf_desc" data-i18n="sort_perf_desc">性能从高到低</option>
+          <option value="perf_asc" data-i18n="sort_perf_asc">性能从低到高</option>
+        </select>
+      </label>
+    </div>
     <p class="small muted" id="matrix-updated">—</p>
     <div class="table-wrap table-magic matrix-wrap">
       <div class="matrix-scroll" id="matrix-table-wrap">
@@ -239,8 +263,8 @@
   <section class="bento" aria-label="能力概览">
     <article class="magic-card bento-a">
       <h3 class="bento-title" data-i18n="home_b1_t">多模型分榜</h3>
-      <p class="bento-txt i18n-zh">按 <strong>六条</strong> 目标模型线（含 Opus / Sonnet、<strong>GPT 5.5</strong>、<strong>GPT 5.4</strong>、<strong>Gemini 3.1 Pro</strong> 等）分别统计，避免「混在一起看不清」。</p>
-      <p class="bento-txt i18n-en">Six separate model lines (Claude, GPT 5.5/5.4, Gemini 3.1 Pro, …)—distinct scores, not one blended table.</p>
+      <p class="bento-txt i18n-zh">排行按 <strong>三条</strong> Claude 线（Opus 4.7 / 4.6、Sonnet 4.6）分表；首页「在线检测」可额外勾选 <strong>GPT 5.5 / 5.4、Gemini 3.1 Pro</strong> 做即时子串匹配。</p>
+      <p class="bento-txt i18n-en">Rankings use <strong>three</strong> Claude lines; the home live detector can also match GPT / Gemini strings in <code>/v1/models</code>.</p>
     </article>
     <article class="magic-card bento-b">
       <h3 class="bento-title" data-i18n="home_b2_t">可调时间窗口</h3>
@@ -256,15 +280,12 @@
 
   <section class="section-block">
     <h2 class="h2-magic" data-i18n="home_models_h">目标模型 / 去排行</h2>
-    <p class="section-lead i18n-zh">以下模型线在探测时会尝试从网关返回的模型列表中匹配；点击直达对应分榜。</p>
-    <p class="section-lead i18n-en">Probes match these model lines in the catalog response. Jump to each section on the rank page.</p>
+    <p class="section-lead i18n-zh">下列三条为<strong>全站排行分榜</strong>所用目标线；GPT / Gemini 等仅在首页「在线检测」模块勾选试匹配。</p>
+    <p class="section-lead i18n-en">Three Claude lines below drive per-model tables; use the home detector for GPT / Gemini substring checks.</p>
     <div class="chips" role="list">
       <a class="chip" href="/rank#m-day-opus-47">Opus 4.7</a>
       <a class="chip" href="/rank#m-day-opus-46">Opus 4.6</a>
       <a class="chip" href="/rank#m-day-sonnet-46">Sonnet 4.6</a>
-      <a class="chip" href="/rank#m-day-gpt-55">GPT 5.5</a>
-      <a class="chip" href="/rank#m-day-gpt-54">GPT 5.4</a>
-      <a class="chip" href="/rank#m-day-gemini-31-pro">Gemini 3.1 Pro</a>
     </div>
   </section>
 
@@ -272,7 +293,7 @@
     <h2 class="h2-magic" data-i18n="home_how_h">我们测什么、不承诺什么</h2>
     <ul class="how-list i18n-zh">
       <li><strong>在线率 / 延迟</strong>：来自对 <code>GET /v1/models</code> 的定时请求与模型名子串是否命中，不等同于对话质量。</li>
-      <li><strong>掺水率</strong>：需多轮聊天、能力对照与更重的指纹分析；未接入前为占位。请勿将「—」误读为「已鉴定无掺水」。</li>
+      <li><strong>掺水率</strong>：真实掺水需对话级检测。排行「掺水率」格内：若后台有登记则显示登记；未登记时显示<strong>该模型线</strong>目录探测摘要（在线率档次提示），不等于已完成掺水质检。</li>
       <li><strong>运行状态</strong>：由最近一次窗口内探测结果归一展示（如在线 / 无数据 / 未列此模型等）。</li>
       <li><strong>非审计报告</strong>：结果仅供接入前技术参考，不构成对商户信誉或资金安全的保证。</li>
     </ul>

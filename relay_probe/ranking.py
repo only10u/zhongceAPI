@@ -110,6 +110,10 @@ def build_ranking_rows(db: Session, window_hours: int | None = None) -> list[dic
                 "last_ok": last.ok if last else None,
                 "last_latency_ms": last.latency_ms if last else None,
                 "sort_weight": sort_weight,
+                "pricing_input_usd": r.pricing_input_usd or None,
+                "pricing_output_usd": r.pricing_output_usd or None,
+                "cny_token_line": r.site_price or None,
+                "price_sort_key": r.price_sort_key,
             }
         )
 

@@ -284,6 +284,13 @@ def create_relay(
         rank_boost=body.rank_boost,
         group_name=body.group_name.strip() if body.group_name else None,
         site_price=body.site_price.strip() if body.site_price else None,
+        pricing_input_usd=body.pricing_input_usd.strip()
+        if body.pricing_input_usd
+        else None,
+        pricing_output_usd=body.pricing_output_usd.strip()
+        if body.pricing_output_usd
+        else None,
+        price_sort_key=body.price_sort_key,
         dilution_label=body.dilution_label.strip() if body.dilution_label else None,
         dilution_override=body.dilution_override,
     )

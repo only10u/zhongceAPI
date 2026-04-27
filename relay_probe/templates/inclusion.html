@@ -71,6 +71,20 @@
         {% endfor %}
       </div>
 
+      <h2 class="inc-sec-title" data-i18n="inc_sec_probe">探测账户</h2>
+      <p class="small muted" data-i18n="inc_probe_hint">用于收录后自动目录/抽检的测试账号（站点要求：大小写+数字+特殊符号，&gt; 8 位），仅站内审核可见。</p>
+      <div class="inc-grid">
+        <label class="inc-field"><span class="req" data-i18n="inc_probe_login">探测用账户</span>
+          <input name="probe_account" required maxlength="512" placeholder="邮箱或用户名" class="in-magic" autocomplete="off"/>
+        </label>
+        <label class="inc-field"><span class="req" data-i18n="inc_probe_pw">探测用密码</span>
+          <span class="inc-pw-wrap">
+            <input id="inc-probe-password-standalone" name="probe_password" type="password" required minlength="9" maxlength="512" placeholder="长度&gt;8，含大小写、数字、符号" class="in-magic" autocomplete="new-password"/>
+            <button type="button" class="inc-pw-toggle" data-pw-toggle="inc-probe-password-standalone" aria-label="显示或隐藏密码">👁</button>
+          </span>
+        </label>
+      </div>
+
       <div class="inc-submit-row">
         <button class="btn btn-magic primary" type="submit" data-i18n="inc_submit">提交申请</button>
         <p id="imsg" class="msg" role="status"></p>

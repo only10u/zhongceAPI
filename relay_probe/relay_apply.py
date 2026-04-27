@@ -28,6 +28,14 @@ def apply_relay_update(r: Relay, body: RelayUpdate) -> None:
     if "site_price" in d:
         v = d["site_price"]
         r.site_price = (v or "").strip() or None
+    if "pricing_input_usd" in d:
+        v = d["pricing_input_usd"]
+        r.pricing_input_usd = (v or "").strip() or None
+    if "pricing_output_usd" in d:
+        v = d["pricing_output_usd"]
+        r.pricing_output_usd = (v or "").strip() or None
+    if "price_sort_key" in d:
+        r.price_sort_key = d["price_sort_key"]
     if "dilution_label" in d:
         v = d["dilution_label"]
         r.dilution_label = (v or "").strip() or None

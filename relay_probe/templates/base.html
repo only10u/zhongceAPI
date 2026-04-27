@@ -26,7 +26,7 @@
       <a href="/" data-i18n="nav_home">首页</a>
       <a href="/rank" data-i18n="nav_rank">中转站排行</a>
       <a href="/yiyuan" data-i18n="nav_yiyuan">一元模型</a>
-      <a href="/inclusion" data-i18n="nav_inclusion">申请收录</a>
+      <a href="/rank#inclusion" data-i18n="nav_inclusion">申请收录</a>
     </nav>
     <div class="top-right">
       <div class="presence-pill" id="nav-presence" data-i18n-title="nav_presence_tip" title="">
@@ -116,9 +116,17 @@
     </div>
   </div>
 
+  <div id="site-row-modal" class="site-row-modal" role="dialog" aria-modal="true" aria-labelledby="site-row-modal-title" hidden>
+    <div class="site-row-modal-backdrop" data-site-modal-close="1" tabindex="-1"></div>
+    <div class="site-row-modal-card magic-card">
+      <button type="button" class="site-row-modal-x" data-site-modal-close="1" aria-label="关闭">×</button>
+      <h3 id="site-row-modal-title" class="site-row-modal-h">—</h3>
+      <pre id="site-row-modal-body" class="site-row-modal-pre"></pre>
+    </div>
+  </div>
+
   <footer class="foot">
-    <span data-i18n="foot_copy">中测</span> ·
-    <a href="https://t.me/only10u" target="_blank" rel="noopener" data-i18n="foot_tg">Telegram: @only10u</a>
+    <span data-i18n="foot_copy">中测</span>
   </footer>
   <script src="/static/app.js" defer></script>
   {% block scripts %}{% endblock %}

@@ -41,7 +41,9 @@ from relay_probe.dashboard_stats import (
 )
 from relay_probe.model_catalog import (
     TRACKED_MODELS,
-    get_tracked_by_slug,
+    get_home_probe_model_by_slug,
+    home_detector_models,
+    inclusion_checkbox_slugs,
     match_models,
 )
 from relay_probe.probe import (
@@ -54,7 +56,12 @@ from relay_probe.probe_ui import build_report_ui
 from relay_probe.ranking import build_ranking_rows
 from relay_probe.relay_apply import apply_relay_update
 from relay_probe.relay_rank_shelf import parse_rank_map_json
-from relay_probe.schemas import HeartbeatIn, InclusionStatusUpdate, RelayUpdate
+from relay_probe.schemas import (
+    HeartbeatIn,
+    InclusionStatusUpdate,
+    RelayCreate,
+    RelayUpdate,
+)
 from starlette.concurrency import run_in_threadpool
 
 log = logging.getLogger("relay_probe.pages")
@@ -117,7 +124,7 @@ RANK_LEADERBOARDS: list[dict[str, Any]] = [
 
 
 def _inclusion_model_groups() -> list[tuple[str, list[dict[str, Any]]]]:
-    by_slug = {m["slug"]: m for m in TRACKED_MODELS}
+    by_slug = {m["slug"]: m for m in home_detector_models()}
     specs = [
         ("Claude", ["opus-47", "opus-46", "sonnet-46"]),
         ("OpenAI", ["gpt-55", "gpt-54"]),
@@ -173,7 +180,7 @@ def _ctx(request: Request, **extra) -> dict:
 @router.get("/", response_class=HTMLResponse)
 def page_home(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
-        "home.html", _ctx(request, models_ui=TRACKED_MODELS)
+        "home.html", _ctx(request, models_ui=home_detector_models())
     )
 
 
@@ -189,6 +196,7 @@ def page_rank(
             request,
             rank_periods=rank_periods,
             tracked=TRACKED_MODELS,
+            inclusion_groups=_inclusion_model_groups(),
         ),
     )
 
@@ -221,15 +229,8 @@ def page_yiyuan(
 
 
 @router.get("/inclusion", response_class=HTMLResponse)
-def page_inclusion(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(
-        "inclusion.html",
-        _ctx(
-            request,
-            inclusion_groups=_inclusion_model_groups(),
-            tracked_slugs=[m["slug"] for m in TRACKED_MODELS],
-        ),
-    )
+def page_inclusion(request: Request) -> RedirectResponse:
+    return RedirectResponse("/rank#inclusion", status_code=302)
 
 
 @router.get("/inclusion/status", response_class=HTMLResponse)
@@ -463,6 +464,8 @@ def _kuma_service_status(
     res: object,
     model_matches: dict[str, bool],
     selected_slug: str = "opus-47",
+    *,
+    model_defs: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """对齐 Uptime Kuma 式状态：up / degraded / down + 各目标线摘要；标记当前选中模型。"""
     st = "down"
@@ -477,10 +480,11 @@ def _kuma_service_status(
         st = "degraded"
     else:
         st = "down"
-    total = len(TRACKED_MODELS)
-    hit = sum(1 for m in TRACKED_MODELS if model_matches.get(m["slug"]))
+    defs = model_defs if model_defs is not None else TRACKED_MODELS
+    total = len(defs)
+    hit = sum(1 for m in defs if model_matches.get(m["slug"]))
     model_detail: list[dict[str, Any]] = []
-    for m in TRACKED_MODELS:
+    for m in defs:
         slug = m["slug"]
         model_detail.append(
             {
@@ -526,9 +530,9 @@ async def api_try_probe(
     if len(bu) > 2048:
         raise HTTPException(400, detail="地址过长")
     msel = (model_slug or "opus-47").strip()
-    tr = get_tracked_by_slug(msel)
+    tr = get_home_probe_model_by_slug(msel)
     if tr is None:
-        raise HTTPException(400, detail="请从已收录的目标模型线中勾选其一")
+        raise HTTPException(400, detail="请从在线检测模型卡片中选择其一")
     path = "/v1/models"
     key = api_key.strip() or None
     if key and len(key) > 4096:
@@ -555,7 +559,7 @@ async def api_try_probe(
         }
     matches: dict[str, bool] = {}
     if res.body_text:
-        matches = match_models(res.body_text.lower())
+        matches = match_models(res.body_text.lower(), scope="home_try")
     out = result_to_dict(res, include_body=False)
     out["model_matches"] = matches
     out["check_path_used"] = path
@@ -565,7 +569,9 @@ async def api_try_probe(
         "card_id": tr.get("card_id", ""),
         "present": bool(matches.get(msel)),
     }
-    kuma = _kuma_service_status(res, matches, msel)
+    kuma = _kuma_service_status(
+        res, matches, msel, model_defs=home_detector_models()
+    )
     out["service_status"] = kuma
     out["checked_at"] = datetime.now(timezone.utc).isoformat()
     out["probe_base_url"] = bu
@@ -584,12 +590,17 @@ def api_inclusion(
     contact: str = Form(...),
     suggested_group: str = Form(""),
     remark: str = Form(""),
+    probe_account: str = Form(...),
+    probe_password: str = Form(...),
     supported_models: list[str] | None = Form(None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    allowed = {m["slug"] for m in TRACKED_MODELS}
+    allowed = inclusion_checkbox_slugs()
     raw_models = list(supported_models) if supported_models is not None else []
     models_clean = [x for x in raw_models if x in allowed]
+    pw = (probe_password or "").strip()
+    if len(pw) < 9:
+        raise HTTPException(400, detail="探测用密码须长于 8 位，且建议包含大小写、数字与特殊字符")
     try:
         fd = date_cls.fromisoformat((founded_date or "").strip()[:10])
     except ValueError as e:
@@ -603,6 +614,8 @@ def api_inclusion(
         contact=contact.strip()[:512] or None,
         suggested_group=(suggested_group or "").strip()[:128] or None,
         remark=(remark or "")[:4000] or None,
+        probe_account=(probe_account or "").strip()[:512] or None,
+        probe_password=(probe_password or "")[:512] or None,
         supported_models_json=json.dumps(models_clean, ensure_ascii=False),
         status="pending",
     )
@@ -750,6 +763,42 @@ def api_change_password(
     u.password_hash = hash_password(new_password)
     db.commit()
     return JSONResponse({"ok": True})
+
+
+@router.post("/api/admin/relays")
+def admin_create_relay(
+    request: Request,
+    body: RelayCreate,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    u = _user_from_cookie(request)
+    if not u or not u.get("is_admin"):
+        raise HTTPException(403, detail="需要管理员")
+    r = Relay(
+        name=body.name.strip(),
+        base_url=body.base_url.strip().rstrip("/"),
+        api_key=body.api_key.strip() if body.api_key and body.api_key.strip() else None,
+        check_path=body.check_path.strip() or "/v1/models",
+        enabled=body.enabled,
+        rank_boost=body.rank_boost,
+        group_name=body.group_name.strip() if body.group_name else None,
+        site_price=body.site_price.strip() if body.site_price else None,
+        pricing_input_usd=body.pricing_input_usd.strip()
+        if body.pricing_input_usd
+        else None,
+        pricing_output_usd=body.pricing_output_usd.strip()
+        if body.pricing_output_usd
+        else None,
+        price_sort_key=body.price_sort_key,
+        dilution_label=body.dilution_label.strip() if body.dilution_label else None,
+        dilution_override=body.dilution_override,
+    )
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    d = r.to_public_dict()
+    d["has_api_key"] = bool(r.api_key and r.api_key.strip())
+    return d
 
 
 @router.patch("/api/admin/relays/{relay_id}")

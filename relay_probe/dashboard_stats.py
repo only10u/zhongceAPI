@@ -1,4 +1,4 @@
-"""按模型线号聚合：在线率、平均延迟、运行状态。掺水率以人工 override 或占位 —— 。"""
+"""按模型线号聚合：在线率、平均延迟、运行状态。掺水率优先后台登记，否则按本线目录探测给出口径提示（非对话级质检）。"""
 from __future__ import annotations
 
 import datetime as dt
@@ -21,12 +21,38 @@ def window_start_utc(hours: int) -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)
 
 
-def _format_dilution(r: Relay) -> str:
+def _manual_dilution(r: Relay) -> str | None:
     if r.dilution_label and r.dilution_label.strip():
         return r.dilution_label.strip()
     if r.dilution_override is not None:
         return f"{r.dilution_override:.0f}%"
-    return "—"
+    return None
+
+
+def _dilution_probe_hint(st: dict[str, Any]) -> str:
+    """
+    无人工掺水登记时：根据当前模型线在窗口内的目录探测样本与在线率生成展示文案。
+    仅反映 /v1/models 子串命中情况，不等于对话掺水质检。
+    """
+    n = int(st.get("samples") or 0)
+    if n <= 0:
+        return "本线无样本"
+    orate = float(st.get("online_rate") or 0.0)
+    pct = int(round(orate * 100))
+    if orate >= 0.9:
+        return f"目录{pct}%·掺水未测"
+    if orate >= 0.65:
+        return f"目录{pct}%·待核"
+    if orate >= 0.35:
+        return f"目录{pct}%·波动"
+    return f"目录{pct}%·偏弱"
+
+
+def _format_dilution_row(r: Relay, st: dict[str, Any]) -> str:
+    manual = _manual_dilution(r)
+    if manual is not None:
+        return manual
+    return _dilution_probe_hint(st)
 
 
 def _uptime_block_keys(
@@ -143,10 +169,13 @@ def build_per_model_table(
         else:
             run_st = "无数据"
             st_cls = "st-muted"
-        dilution = _format_dilution(r)
+        dilution = _format_dilution_row(r, st)
         ukeys = _uptime_block_keys(
             db, r.id, model_slug, since, st["online_rate"], st["samples"]
         )
+        pin = r.pricing_input_usd or "—"
+        pout = r.pricing_output_usd or "—"
+        cny = r.site_price or "—"
         out.append(
             {
                 "relay_id": r.id,
@@ -154,6 +183,10 @@ def build_per_model_table(
                 "base_url": r.base_url,
                 "group": r.group_name or "—",
                 "price": r.site_price or "—",
+                "pricing_input_usd": pin,
+                "pricing_output_usd": pout,
+                "cny_token_line": cny,
+                "price_sort_key": r.price_sort_key,
                 "online_rate": st["online_rate"],
                 "samples": st["samples"],
                 "online_rate_pct": round(st["online_rate"] * 100, 1) if st["samples"] else "—",
@@ -205,11 +238,10 @@ def build_home_stats(
     """首页实时看板：与全站同一统计窗口的聚合与分模型快照。"""
     h = window_hours if window_hours is not None else settings.ranking_window_hours
     since = window_start_utc(h)
-    # 与「已启用站点」对齐：只计当前仍启用中转在窗口内的目录探测样本（不含已禁用站残留）
+    # 窗口内写入的目录探测样本总条数（含曾启用站的历史记录），与「已启用站点数」不作人为倍数绑定
     n_samp = (
         db.query(func.count(ProbeSample.id))
-        .join(Relay, ProbeSample.relay_id == Relay.id)
-        .filter(ProbeSample.created_at >= since, Relay.enabled.is_(True))
+        .filter(ProbeSample.created_at >= since)
         .scalar()
     ) or 0
     n_relays = int(db.query(func.count(Relay.id)).scalar() or 0)
@@ -288,6 +320,10 @@ def build_relay_model_matrix(
                     "status": "未上榜",
                     "status_class": "st-muted",
                 }
+        relay_cells[rid]["pricing_input_usd"] = r.pricing_input_usd or "—"
+        relay_cells[rid]["pricing_output_usd"] = r.pricing_output_usd or "—"
+        relay_cells[rid]["cny_token_line"] = r.site_price or "—"
+        relay_cells[rid]["price_sort_key"] = r.price_sort_key
     return {
         "window_hours": h,
         "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),

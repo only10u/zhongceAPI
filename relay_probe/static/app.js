@@ -11,7 +11,6 @@
       nav_logout: "退出",
       nav_login: "登录",
       foot_copy: "中测",
-      foot_tg: "Telegram: @only10u",
       home_eyebrow: "中转站 API 检测平台",
       home_brand_title: "中测",
       home_tagline: "识别中转站接口真伪 · 多模型分榜 · 持续探测",
@@ -33,12 +32,25 @@
       col_dilu: "掺水率",
       col_lat: "延迟 (ms)",
       col_run: "运行状态",
+      col_in_usd: "输入/$",
+      col_out_usd: "输出/$",
+      col_cny_token: "1人民币=X TOKEN",
+      col_base: "Base",
+      pricing_cols_hint:
+        "与全站、首页一致：表头为「输入/$」「输出/$」「1人民币=X TOKEN」（后台维护）。掺水：人工登记优先，否则为当前模型线目录探测摘要（非对话掺水鉴定）。",
+      sort_label: "排行",
+      sort_default: "综合",
+      sort_price_desc: "价格从高到低",
+      sort_price_asc: "价格从低到高",
+      sort_perf_desc: "性能从高到低",
+      sort_perf_asc: "性能从低到高",
       col_window_ok: "窗口成功率",
       col_avg_lat: "均延迟 (ms)",
       rank_h1: "中转站排行",
       rank_recommend: "推荐",
       rank_legacy_h: "总榜（/v1/models 全通道）",
-      rank_note: "在线率由 /v1/models 是否列出对应模型名判定；掺水率需更深度检测。",
+      rank_note:
+        "在线率来自窗口内 GET /v1/models 子串命中。表头「输入/$」「输出/$」为登记单价口径；「1人民币=X TOKEN」为充值折算。掺水率：后台登记优先；未登记时按本模型线目录探测在线率生成提示（非对话质检）。",
       rank_live_ribbon: "排行数据与服务器同步中",
       home_live_ribbon: "全站数据实时刷新中",
       stat_enabled: "已启用站点",
@@ -46,7 +58,7 @@
       stat_enabled_tip:
         "当前在库中勾选了「启用探测」的中转站数量；这些站会参与全站定时探测任务。",
       stat_samples_tip:
-        "在当前统计时间窗口内、且对「当前仍为启用探测」的站点，累计写入的目录探测样本条数；与上方启用站点数口径一致（不含已禁用站的历史样本）。每站每轮定时探测通常对应 1 条。",
+        "当前统计时间窗口内写入数据库的「目录探测」样本总条数（全库累计）。与「已启用站点」无固定倍数：取决于轮询间隔、失败重试以及曾收录后又禁用的站点留存记录。",
       stat_window: "统计窗口",
       detector_h2: "在线检测",
       detector_hint:
@@ -74,7 +86,7 @@
       detector_hint2_en: "GET /v1/models once. Pick model line. Key not stored.",
       detector_privacy_en: "Key not stored. Use test keys.",
       home_live_ribbon_en: "Live",
-      inc_h2: "中转站收录",
+      inc_h2: "中转站收录申请",
       inc_hint2:
         "在此提交，字段习惯可参考禾维。审核通过后由管理员配置探测。",
       inc_hint2_en: "Listing request, similar to Hvoy. Admin reviews.",
@@ -111,6 +123,11 @@
       inc_contact: "联系方式",
       inc_remark: "备注",
       inc_submit: "提交申请",
+      inc_sec_probe: "探测账户",
+      inc_probe_hint:
+        "用于收录后自动目录/抽检的测试账号。密码须含大小写、数字、特殊符号且长于 8 位（与贵站常见安全基线一致）。",
+      inc_probe_login: "探测用账户",
+      inc_probe_pw: "探测用密码",
       ws_h2: "个人工作台",
       ws_p1: "以下为与全站相同数据源的实时摘要（每 10 秒更新）。可前往排行或首页使用在线检测。",
       ad_pw_h: "修改当前账号密码",
@@ -182,7 +199,6 @@
       nav_logout: "Logout",
       nav_login: "Login",
       foot_copy: "Zhongce",
-      foot_tg: "Telegram: @only10u",
       home_eyebrow: "Relay API verification platform",
       home_brand_title: "Zhongce",
       home_tagline: "Spot fake relays · per-model tables · always-on probes",
@@ -204,12 +220,25 @@
       col_dilu: "Dilution",
       col_lat: "Latency (ms)",
       col_run: "Status",
+      col_in_usd: "Input /$",
+      col_out_usd: "Output /$",
+      col_cny_token: "1 CNY = X TOKEN",
+      col_base: "Base",
+      pricing_cols_hint:
+        "Same headers site-wide: Input /$, Output /$, 1 CNY = X TOKEN (admin). Dilution: manual first, else a per-model-line catalog-probe hint (not chat dilution QA).",
+      sort_label: "Sort",
+      sort_default: "Default",
+      sort_price_desc: "Price high → low",
+      sort_price_asc: "Price low → high",
+      sort_perf_desc: "Perf high → low",
+      sort_perf_asc: "Perf low → high",
       col_window_ok: "Window success",
       col_avg_lat: "Avg (ms)",
       rank_h1: "Relay leaderboards",
       rank_recommend: "Featured",
       rank_legacy_h: "Aggregate (all /v1/models)",
-      rank_note: "Online rate uses substring match in /v1/models; dilution needs deeper checks.",
+      rank_note:
+        "Online rate uses /v1/models substring hits in the window. Columns Input /$, Output /$ and CNY/token are as registered. Dilution: admin text/percent first; if empty, a short probe-based hint for this model line (not chat-level dilution QA).",
       rank_live_ribbon: "Leaderboard sync",
       rank_live_ribbon_en: "Syncing",
       home_live_ribbon: "Live refresh",
@@ -219,7 +248,7 @@
       stat_enabled_tip:
         "How many relays are marked enabled for scheduled probing.",
       stat_samples_tip:
-        "ProbeSample rows in the window for relays that are still enabled now (excludes samples from relays you disabled mid-window). One row per relay per scheduled run.",
+        "Total ProbeSample rows written in the window (all relays). Not a fixed multiple of enabled relays—depends on poll interval, retries, and history from relays later disabled.",
       stat_window: "Window",
       detector_h2: "Live check",
       detector_hint:
@@ -279,6 +308,11 @@
       inc_contact: "Contact",
       inc_remark: "Notes",
       inc_submit: "Submit",
+      inc_sec_probe: "Probe account",
+      inc_probe_hint:
+        "Test credentials for scheduled directory/chat sampling after listing. Password policy: mixed case, digit, symbol, length > 8.",
+      inc_probe_login: "Probe login",
+      inc_probe_pw: "Probe password",
       ws_h2: "Workspace",
       ws_p1: "Snapshot below refreshes every 10s. Use rank or home live check.",
       ad_pw_h: "Change your password",
@@ -361,6 +395,10 @@
     if (sel) sel.value = lang;
     localStorage.setItem("zhongce_lang", lang);
   }
+
+  document.addEventListener("zhongce-refresh-i18n", function () {
+    applyLang(localStorage.getItem("zhongce_lang") || "zh");
+  });
 
   const themeKey = "zhongce_theme";
   function applyTheme(t) {

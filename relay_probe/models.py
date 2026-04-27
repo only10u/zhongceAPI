@@ -29,6 +29,11 @@ class Relay(Base):
     # 展示用（可选）
     group_name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     site_price: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # 展示用定价文案（首页/排行表头：输入/$、输出/$）
+    pricing_input_usd: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    pricing_output_usd: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # 用于「按价格」排序：数值越小通常表示越便宜（如 实付元/百万Token），未填则排后
+    price_sort_key: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     # 人工备注掺水率 0-100 或空（深度探测可后续接）
     dilution_override: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     # 掺水率展示文案（如「几乎不」），优先生于纯数字
@@ -56,6 +61,9 @@ class Relay(Base):
             "rank_boost": self.rank_boost,
             "group_name": self.group_name,
             "site_price": self.site_price,
+            "pricing_input_usd": self.pricing_input_usd,
+            "pricing_output_usd": self.pricing_output_usd,
+            "price_sort_key": self.price_sort_key,
             "dilution_label": self.dilution_label,
             "dilution_override": self.dilution_override,
             "rank_models_json": self.rank_models_json,
@@ -148,6 +156,9 @@ class InclusionRequest(Base):
     remark: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # JSON 数组：申报支持的模型线 slug
     supported_models_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # 申报用于自动探测的测试账号（管理员在后台可再调整；数据库仅存摘要）
+    probe_account: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    probe_password: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     status: Mapped[str] = mapped_column(
         String(32), default="pending"
     )  # pending, approved, rejected

@@ -23,8 +23,30 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
       <div class="admin-relay-hub-actions">
         <a class="btn btn-ghost btn-sm" href="#relay-overview">总览表</a>
         <a class="btn btn-ghost btn-sm" href="#relay-edit-start">逐项编辑</a>
+        <a class="btn btn-ghost btn-sm" href="#admin-relay-create">添加站点</a>
       </div>
     </header>
+
+    <div id="admin-relay-create" class="card magic-card admin-relay-create">
+      <h3 class="admin-relay-subh">添加新站点</h3>
+      <p class="small muted admin-relay-hint">创建基础记录后可逐项编辑 <strong>API Key、掺水率、各模型分线上架</strong>。定价文案与排序键与前台「输入/$、输出/$、1人民币=X TOKEN」及表头排序一致。</p>
+      <form id="f-admin-relay-create" class="form f-relay-grid" autocomplete="off">
+        <label><span>名称</span> <input name="name" type="text" required placeholder="显示名" maxlength="128"/></label>
+        <label class="span2"><span>Base URL</span> <input name="base_url" type="url" required placeholder="https://api.xxx.com" /></label>
+        <label><span>站点分组</span> <input name="group_name" type="text" placeholder="可选" maxlength="64"/></label>
+        <label><span>探测路径</span> <input name="check_path" type="text" value="/v1/models" placeholder="/v1/models" /></label>
+        <label><span>输入/$（展示）</span> <input name="pricing_input_usd" type="text" placeholder="如 1.2" maxlength="64"/></label>
+        <label><span>输出/$（展示）</span> <input name="pricing_output_usd" type="text" placeholder="如 6" maxlength="64"/></label>
+        <label><span>1人民币=X TOKEN</span> <input name="site_price" type="text" placeholder="如 1人民币=150000Token" maxlength="64"/></label>
+        <label><span>价格排序键</span> <input name="price_sort_key" type="number" step="any" placeholder="数字越小越便宜；空则仅综合序"/></label>
+        <label><span>排序权值</span> <input name="rank_boost" type="number" value="0" min="0"/></label>
+        <label class="chkb"><input name="enabled" type="checkbox" value="1" checked/> <span>已启用探测</span></label>
+        <div class="span2 admin-relay-actions">
+          <button type="submit" class="btn primary">创建站点</button>
+          <span id="admin-create-msg" class="msg" aria-live="polite"></span>
+        </div>
+      </form>
+    </div>
 
     <div id="relay-overview" class="admin-relay-overview-wrap table-wrap table-magic">
       <h3 class="admin-relay-subh">站点总览</h3>
@@ -35,7 +57,9 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
             <th>名称</th>
             <th>Base URL</th>
             <th>分组</th>
-            <th>1人民币=x Token（摘）</th>
+            <th>输入/$</th>
+            <th>输出/$</th>
+            <th>1人民币=X</th>
             <th>启用</th>
             <th>Key</th>
             <th></th>
@@ -48,20 +72,22 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
             <td>{{ r.name }}</td>
             <td class="url mono-sm">{{ r.base_url }}</td>
             <td>{% if r.group_name %}{{ r.group_name }}{% else %}—{% endif %}</td>
+            <td class="td-ellipsis mono-sm">{% if r.pricing_input_usd %}{{ r.pricing_input_usd }}{% else %}—{% endif %}</td>
+            <td class="td-ellipsis mono-sm">{% if r.pricing_output_usd %}{{ r.pricing_output_usd }}{% else %}—{% endif %}</td>
             <td class="td-ellipsis" title="{{ r.site_price or '' }}">{% if r.site_price %}{{ r.site_price }}{% else %}—{% endif %}</td>
             <td>{% if r.enabled %}是{% else %}否{% endif %}</td>
             <td>{% if r.api_key %}✓{% else %}—{% endif %}</td>
             <td><button type="button" class="btn btn-magic btn-sm admin-goto-edit" data-target="relay-{{ r.id }}">编辑</button></td>
           </tr>
           {% else %}
-          <tr><td colspan="8" class="muted">暂无中转，可用 <code>POST /api/relays</code>（<code>X-Admin-Token</code>）或 seed 导入。</td></tr>
+          <tr><td colspan="10" class="muted">暂无中转；请使用上方「添加站点」或 <code>POST /api/relays</code>（<code>X-Admin-Token</code>）。</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
     <h3 class="admin-relay-subh" id="relay-edit-start">逐项编辑</h3>
-    <p class="small muted admin-relay-hint">登记格式建议 <code>1人民币=x Token</code>（x 为可读数字）；亦可与历史数据兼容。API Key 仅在新填写时覆盖，留空不变。</p>
+    <p class="small muted admin-relay-hint">定价列与前台表头一致为「输入/$」「输出/$」「1人民币=X TOKEN」。掺水率文案/% 未填时，前台按<strong>各模型线</strong>目录探测在线率显示摘要（非对话质检）。登记 <code>1人民币=x Token</code> 时可读数字即可。API Key 仅在新填写时覆盖，留空不变。</p>
   </section>
 
   <div class="admin-relay-list">
@@ -77,7 +103,10 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         <label><span>名称</span> <input name="name" type="text" value="{{ r.name }}" required/></label>
         <label class="span2"><span>Base URL</span> <input name="base_url" type="url" value="{{ r.base_url }}" required/></label>
         <label><span>站点分组</span> <input name="group_name" type="text" value="{{ r.group_name or '' }}" placeholder="可选"/></label>
-        <label><span>1人民币=x Token</span> <input name="site_price" type="text" value="{{ r.site_price or '' }}" placeholder="如 1人民币=150000Token" maxlength="64"/></label>
+        <label><span>输入/$（展示）</span> <input name="pricing_input_usd" type="text" value="{{ r.pricing_input_usd or '' }}" placeholder="如 1.2 / 百万" maxlength="64"/></label>
+        <label><span>输出/$（展示）</span> <input name="pricing_output_usd" type="text" value="{{ r.pricing_output_usd or '' }}" placeholder="如 6 / 百万" maxlength="64"/></label>
+        <label><span>1人民币=X TOKEN</span> <input name="site_price" type="text" value="{{ r.site_price or '' }}" placeholder="如 1人民币=150000Token" maxlength="64"/></label>
+        <label><span>价格排序键</span> <input name="price_sort_key" type="number" step="any" value="{{ r.price_sort_key if r.price_sort_key is not none else '' }}" placeholder="越小越便宜；空=后台默认序"/></label>
         <label><span>掺水率文案</span> <input name="dilution_label" type="text" value="{{ r.dilution_label or '' }}" placeholder="如 几乎不（优先生效）" maxlength="64"/></label>
         <label><span>掺水率 %</span> <input name="dilution_override" type="number" min="0" max="100" step="0.1" value="{{ r.dilution_override if r.dilution_override is not none else '' }}" placeholder="0–100，空=清除"/></label>
         <label><span>排序权值</span> <input name="rank_boost" type="number" value="{{ r.rank_boost }}" min="0"/></label>
@@ -135,7 +164,7 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
   <h2>收录申请</h2>
   <div class="table-wrap table-magic admin-inc-wrap">
     <table class="data-table data-table-lens">
-      <thead><tr><th>ID</th><th>站点</th><th>URL</th><th>成立</th><th>联系人</th><th>联络</th><th>模型申报</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>ID</th><th>站点</th><th>URL</th><th>成立</th><th>联系人</th><th>联络</th><th>探测账户</th><th>探测密码</th><th>模型申报</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
     <tbody>
     {% for q in inc_rows %}
       <tr data-inc-id="{{ q.id }}">
@@ -145,6 +174,8 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         <td>{% if q.founded_date %}{{ q.founded_date }}{% else %}—{% endif %}</td>
         <td>{{ q.contact_person or "—" }}</td>
         <td class="td-ellipsis" title="{{ q.contact or '' }}">{{ q.contact or "—" }}</td>
+        <td class="mono-sm td-ellipsis" title="{{ q.probe_account or '' }}">{% if q.probe_account %}{{ q.probe_account }}{% else %}—{% endif %}</td>
+        <td class="mono-sm td-ellipsis" title="">{% if q.probe_password %}··· 已填{% else %}—{% endif %}</td>
         <td class="mono-sm td-ellipsis" title="{{ q.supported_models_json or '' }}">{% if q.supported_models_json %}{{ q.supported_models_json }}{% else %}—{% endif %}</td>
         <td class="inc-st-cell">{{ q.status }}</td>
         <td class="mono-sm">{{ q.created_at }}</td>
@@ -240,11 +271,19 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
         base_url: (fd.get("base_url") || "").toString().trim(),
         group_name: (() => { const s = (fd.get("group_name") || "").toString().trim(); return s || null; })(),
         site_price: (() => { const s = (fd.get("site_price") || "").toString().trim(); return s || null; })(),
+        pricing_input_usd: (() => { const s = (fd.get("pricing_input_usd") || "").toString().trim(); return s || null; })(),
+        pricing_output_usd: (() => { const s = (fd.get("pricing_output_usd") || "").toString().trim(); return s || null; })(),
         dilution_label: (() => { const s = (fd.get("dilution_label") || "").toString().trim(); return s || null; })(),
         rank_boost: parseInt((fd.get("rank_boost") || "0").toString(), 10) || 0,
         enabled: form.querySelector("input[name=enabled]") && form.querySelector("input[name=enabled]").checked,
         check_path: (fd.get("check_path") || "").toString().trim() || "/v1/models",
       };
+      const psk = (fd.get("price_sort_key") || "").toString().trim();
+      if (psk === "") body.price_sort_key = null;
+      else {
+        const n = parseFloat(psk);
+        if (!isNaN(n)) body.price_sort_key = n;
+      }
       const dpn = (fd.get("dilution_override") || "").toString().trim();
       if (dpn === "") body.dilution_override = null;
       else { const n = parseFloat(dpn); if (!isNaN(n)) body.dilution_override = n; }
@@ -315,6 +354,56 @@ ADMIN_TOKEN=...   # 写接口用 X-Admin-Token</pre>
       }
     });
   });
+  (function () {
+    var fc = document.getElementById("f-admin-relay-create");
+    var cms = document.getElementById("admin-create-msg");
+    if (!fc) return;
+    fc.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      if (cms) cms.textContent = "…";
+      var fd = new FormData(fc);
+      var body = {
+        name: (fd.get("name") || "").toString().trim(),
+        base_url: (fd.get("base_url") || "").toString().trim(),
+        check_path: (fd.get("check_path") || "").toString().trim() || "/v1/models",
+        enabled: fc.querySelector("input[name=enabled]") && fc.querySelector("input[name=enabled]").checked,
+        rank_boost: parseInt((fd.get("rank_boost") || "0").toString(), 10) || 0,
+        group_name: (() => { var s = (fd.get("group_name") || "").toString().trim(); return s || null; })(),
+        site_price: (() => { var s = (fd.get("site_price") || "").toString().trim(); return s || null; })(),
+        pricing_input_usd: (() => { var s = (fd.get("pricing_input_usd") || "").toString().trim(); return s || null; })(),
+        pricing_output_usd: (() => { var s = (fd.get("pricing_output_usd") || "").toString().trim(); return s || null; })(),
+      };
+      var psk = (fd.get("price_sort_key") || "").toString().trim();
+      if (psk === "") body.price_sort_key = null;
+      else {
+        var n = parseFloat(psk);
+        if (!isNaN(n)) body.price_sort_key = n;
+      }
+      var r = await fetch("/api/admin/relays", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        credentials: "same-origin",
+      });
+      if (r.ok) {
+        if (cms) cms.textContent = "已创建，请刷新页面后可编辑 Key 与分线。";
+        fc.reset();
+        var cp = fc.querySelector("input[name=check_path]");
+        if (cp) cp.value = "/v1/models";
+        var en = fc.querySelector("input[name=enabled]");
+        if (en) en.checked = true;
+        return;
+      }
+      if (cms) {
+        try {
+          cms.textContent = (await r.json()).detail || r.status;
+        } catch (ex) {
+          cms.textContent = await r.text();
+        }
+      }
+    });
+  })();
+
   document.getElementById("f-chpw").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);

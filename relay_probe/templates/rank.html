@@ -16,12 +16,13 @@
 
   <div class="rank-hero card-spotlight">
     <h1 class="h1-magic h1-rank gradient-text" data-i18n="rank_h1">中转站排行</h1>
-    <p class="rank-sub i18n-zh">多模型分榜、指标可对照。分<strong>日榜</strong>（近 24 小时）、<strong>周榜</strong>（近 168 小时）、<strong>月榜</strong>（近 720 小时）三套；每套含 <strong>六条</strong> 模型分表（Opus 4.7 / 4.6、Sonnet 4.6、GPT 5.5、GPT 5.4、Gemini 3.1 Pro）与 1 份总榜。中测 v{{ version }}。下方每 <strong>8</strong> 秒与全站库对齐刷新。</p>
-    <p class="rank-sub i18n-en">Leaderboards: <strong>24h</strong>, <strong>7d (168h)</strong>, and <strong>30d (720h)</strong> — each with <strong>six</strong> per-model tables (Claude, GPT 5.5/5.4, Gemini 3.1 Pro, etc.) plus one aggregate. v{{ version }} · every <strong>8</strong>s.</p>
+    <p class="rank-sub i18n-zh">多模型分榜、指标可对照。分<strong>日榜</strong>（近 24 小时）、<strong>周榜</strong>（近 168 小时）、<strong>月榜</strong>（近 720 小时）三套；每套含 <strong>三条</strong> Claude 目标线分表（Opus 4.7 / 4.6、Sonnet 4.6）与 1 份总榜。<strong>首页在线检测</strong>可选用额外 OpenAI / Google 线做即时子串匹配。中测 v{{ version }}。下方每 <strong>8</strong> 秒与全站库对齐刷新。</p>
+    <p class="rank-sub i18n-en">Leaderboards: <strong>24h</strong>, <strong>7d</strong>, <strong>30d</strong> — each with <strong>three</strong> Claude model tables plus aggregate. The home page detector can also match GPT/Gemini strings. v{{ version }} · every <strong>8</strong>s.</p>
   </div>
 
   <div class="rank-toolbar">
-    <p class="meta tool-meta" data-i18n="rank_note">「在线率」为窗口内 <code>GET /v1/models</code> 中目标模型子串的命中比例。掺水率可在后台填文案或百分比；行末 12 格为近期探测/在线率合成示意。</p>
+    <p class="meta tool-meta" data-i18n="rank_note">在线率来自窗口内 <code>GET /v1/models</code> 子串命中。表头「输入/$」「输出/$」为登记单价口径；「1人民币=X TOKEN」为充值折算。掺水率后台登记优先；未登记时按<strong>当前模型线</strong>目录探测在线率提示（非对话质检）。行末 12 格为探测示意。</p>
+    <p class="meta tool-meta rank-pricing-hint muted small" data-i18n="pricing_cols_hint">与全站、首页矩阵统一：表头完整写作「输入/$」「输出/$」与「1人民币=X TOKEN」（后台「管理员」维护）。掺水格内：人工登记优先，否则显示该线目录探测摘要。</p>
   </div>
 
   {% for period in rank_periods %}
@@ -53,11 +54,22 @@
       id="m-{{ period.key }}-{{ slug }}"
       data-slug="{{ slug }}"
     >
-      <div class="model-block-head">
+      <div class="model-block-head model-block-head-row">
         <h2 class="model-title">
           <span class="name-zh model-name-gradient">{{ m.name_zh }}</span>
           <span class="name-en muted">/ {{ m.name_en }}</span>
         </h2>
+        <div class="model-block-toolbar">
+          <label class="rank-sort-label muted small"><span data-i18n="sort_label">排行</span>
+            <select class="rank-sort-select" data-rank-table="model" data-period="{{ period.key }}" data-slug="{{ slug }}" title="排序">
+              <option value="default" selected data-i18n="sort_default">综合</option>
+              <option value="price_desc" data-i18n="sort_price_desc">价格从高到低</option>
+              <option value="price_asc" data-i18n="sort_price_asc">价格从低到高</option>
+              <option value="perf_desc" data-i18n="sort_perf_desc">性能从高到低</option>
+              <option value="perf_asc" data-i18n="sort_perf_asc">性能从低到高</option>
+            </select>
+          </label>
+        </div>
         <span class="model-badge" data-i18n="rank_recommend">推荐</span>
       </div>
       <div class="table-wrap table-magic">
@@ -67,7 +79,9 @@
               <th class="th-rank" data-i18n="col_rank">排名</th>
               <th data-i18n="col_site">站点</th>
               <th data-i18n="col_group">站点分组</th>
-              <th data-i18n="col_price">1人民币=x Token</th>
+              <th data-i18n="col_in_usd">输入/$</th>
+              <th data-i18n="col_out_usd">输出/$</th>
+              <th data-i18n="col_cny_token">1人民币=X TOKEN</th>
               <th class="th-metric" data-i18n="col_online">在线率</th>
               <th class="th-metric" data-i18n="col_dilu">掺水率</th>
               <th class="th-metric" data-i18n="col_lat">延迟</th>
@@ -76,11 +90,13 @@
           </thead>
           <tbody id="tb-{{ period.key }}-model-{{ slug }}">
           {% for row in rows %}
-            <tr>
+            <tr class="row-clickable" data-row-detail='{{ row|tojson }}'>
               <td class="td-rank"><span class="rank-pill">#{{ row.rank }}</span></td>
               <td class="td-name"><a class="site-link" href="{{ row.base_url }}" target="_blank" rel="noopener noreferrer">{{ row.name }}</a></td>
               <td>{{ row.group }}</td>
-              <td class="td-price">{{ row.price }}</td>
+              <td class="td-mono-sm">{{ row.pricing_input_usd }}</td>
+              <td class="td-mono-sm">{{ row.pricing_output_usd }}</td>
+              <td class="td-price">{{ row.cny_token_line }}</td>
               <td class="td-metric">{% if row.samples %}{{ row.online_rate_pct }}%{% else %}—{% endif %}</td>
               <td class="td-metric td-dilu">{{ row.dilution }}</td>
               <td class="td-metric td-lat">{% if row.avg_latency_ms is not none %}{{ row.avg_latency_ms }}{% else %}—{% endif %}</td>
@@ -93,7 +109,7 @@
               </td>
             </tr>
           {% else %}
-            <tr><td colspan="8" class="muted">暂无数据，请先通过 API 或 seed_sites 添加中转并完成探测</td></tr>
+            <tr><td colspan="10" class="muted">暂无数据，请先通过 API 或 seed_sites 添加中转并完成探测</td></tr>
           {% endfor %}
           </tbody>
         </table>
@@ -104,12 +120,26 @@
     <h2 class="h2-legacy" id="rank-legacy-{{ period.key }}" data-i18n="rank_legacy_h">总榜（/v1/models 全通道）</h2>
     <p class="note i18n-zh">不区分模型线号，按整站 <code>GET /v1/models</code> 请求的成功与延迟；适合观察网关整体健康。</p>
     <p class="note i18n-en">Aggregate health across the whole models endpoint (no per-model split).</p>
+    <div class="legacy-sort-bar">
+      <label class="rank-sort-label muted small"><span data-i18n="sort_label">排行</span>
+        <select class="rank-sort-select" data-rank-table="legacy" data-period="{{ period.key }}" title="排序">
+          <option value="default" selected data-i18n="sort_default">综合</option>
+          <option value="price_desc" data-i18n="sort_price_desc">价格从高到低</option>
+          <option value="price_asc" data-i18n="sort_price_asc">价格从低到高</option>
+          <option value="perf_desc" data-i18n="sort_perf_desc">性能从高到低</option>
+          <option value="perf_asc" data-i18n="sort_perf_asc">性能从低到高</option>
+        </select>
+      </label>
+    </div>
     <div class="table-wrap table-magic">
       <table class="data-table data-table-lens">
         <thead>
           <tr>
             <th class="th-rank" data-i18n="col_rank">排名</th>
             <th data-i18n="col_site2">名称</th>
+            <th data-i18n="col_in_usd">输入/$</th>
+            <th data-i18n="col_out_usd">输出/$</th>
+            <th data-i18n="col_cny_token">1人民币=X TOKEN</th>
             <th data-i18n="col_window_ok">窗口成功率</th>
             <th data-i18n="col_avg_lat">均延迟 (ms)</th>
             <th>Base</th>
@@ -117,9 +147,12 @@
         </thead>
         <tbody id="tb-legacy-{{ period.key }}">
         {% for x in period.legacy_rows %}
-          <tr>
+          <tr class="row-clickable" data-row-detail='{{ x|tojson }}'>
             <td class="td-rank"><span class="rank-pill">#{{ x.rank }}</span></td>
             <td class="td-name"><a class="site-link" href="{{ x.base_url }}" target="_blank" rel="noopener noreferrer">{{ x.name }}</a></td>
+            <td class="td-mono-sm">{% if x.pricing_input_usd %}{{ x.pricing_input_usd }}{% else %}—{% endif %}</td>
+            <td class="td-mono-sm">{% if x.pricing_output_usd %}{{ x.pricing_output_usd }}{% else %}—{% endif %}</td>
+            <td class="td-price">{% if x.cny_token_line %}{{ x.cny_token_line }}{% else %}—{% endif %}</td>
             <td class="td-metric">{% if x.samples_in_window %}{{ (x.success_rate * 100)|round(1) }}%{% else %}—{% endif %}</td>
             <td class="td-metric td-lat">{% if x.avg_latency_ms is not none %}{{ x.avg_latency_ms }}{% else %}—{% endif %}</td>
             <td class="url"><a class="site-link" href="{{ x.base_url }}" target="_blank" rel="noopener noreferrer"><small>{{ x.base_url }}</small></a></td>
@@ -132,12 +165,86 @@
   {% endfor %}
 
   <section class="inclusion-rank" id="inclusion">
-    <h2 class="h2-magic" data-i18n="inc_h2">中转站收录</h2>
-    <p class="note i18n-zh" data-i18n="inc_hint_short">需登记站点信息、测试账户约定与申报模型线；完整表单与进度查询请前往收录专页。</p>
-    <p class="note i18n-en" data-i18n="inc_hint_short_en">Use the dedicated inclusion page for the full form and status lookup.</p>
-    <div class="card magic-card inc-card inc-card-cta">
-      <a class="btn btn-magic primary" href="/inclusion" data-i18n="inc_go_full">填写收录申请</a>
-      <a class="btn btn-ghost" href="/inclusion/status" data-i18n="inc_status_btn">查看申请状态</a>
+    <h2 class="h2-magic" data-i18n="inc_h2">中转站收录申请</h2>
+    <p class="note i18n-zh">如有任何问题，欢迎随时与我们联系。请如实填写下列信息；进度可在同页链至「查看申请状态」查询。</p>
+    <p class="note i18n-en">List your gateway for the public relay index. Status lookup is linked below.</p>
+
+    <div class="card magic-card inc-form-card">
+      <form id="f-inc" class="inc-form" autocomplete="off">
+        <h2 class="inc-sec-title" data-i18n="inc_sec_site">站点信息</h2>
+        <div class="inc-grid">
+          <label class="inc-field"><span class="req" data-i18n="inc_site_name">站点名称</span>
+            <input name="site_name" required maxlength="256" placeholder="例如：OpenRouter" class="in-magic"/>
+          </label>
+          <label class="inc-field"><span class="req" data-i18n="inc_site_url">站点 URL</span>
+            <input name="site_url" type="url" required placeholder="https://example.com" class="in-magic"/>
+          </label>
+          <label class="inc-field"><span class="req" data-i18n="inc_founded">成立时间</span>
+            <input name="founded_date" type="date" required class="in-magic"/>
+          </label>
+          <label class="inc-field"><span class="req" data-i18n="inc_signup">注册 URL</span>
+            <input name="signup_url" type="url" required placeholder="https://example.com/signup" class="in-magic"/>
+          </label>
+        </div>
+
+        <h2 class="inc-sec-title" data-i18n="inc_sec_contact">联系信息</h2>
+        <div class="inc-grid">
+          <label class="inc-field"><span class="req" data-i18n="inc_person">联系人</span>
+            <input name="contact_person" required maxlength="256" placeholder="姓名或昵称" class="in-magic"/>
+          </label>
+          <label class="inc-field"><span class="req" data-i18n="inc_contact">联系方式</span>
+            <input name="contact" required maxlength="512" placeholder="微信 / 手机号" class="in-magic"/>
+          </label>
+        </div>
+
+        <h2 class="inc-sec-title" data-i18n="inc_sec_other">其他</h2>
+        <div class="inc-grid">
+          <label class="inc-field"><span data-i18n="inc_suggest_group">建议分组</span>
+            <input name="suggested_group" maxlength="128" placeholder="您建议的分组" class="in-magic"/>
+          </label>
+          <label class="inc-field inc-span2"><span data-i18n="inc_remark">备注</span>
+            <textarea name="remark" rows="3" maxlength="4000" placeholder="补充信息（选填）"></textarea>
+          </label>
+        </div>
+
+        <h2 class="inc-sec-title" data-i18n="inc_sec_models">支持的模型（申报）</h2>
+        <p class="small muted" data-i18n="inc_models_hint">勾选贵站实际可提供的线路；与首页在线检测可选目标一致。</p>
+        <div class="inc-model-groups">
+          {% for label, models in inclusion_groups %}
+          <div class="inc-model-group">
+            <div class="inc-model-brand">{{ label }}</div>
+            <div class="inc-model-chips">
+              {% for m in models %}
+              <label class="inc-cb">
+                <input type="checkbox" name="supported_models" value="{{ m.slug }}"/>
+                <span>{{ m.name_zh }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <h2 class="inc-sec-title" data-i18n="inc_sec_probe">探测账户</h2>
+        <p class="small muted" data-i18n="inc_probe_hint">用于收录后自动目录/抽检的测试账号（站点要求：大小写+数字+特殊符号，&gt; 8 位），仅站内审核可见。</p>
+        <div class="inc-grid">
+          <label class="inc-field"><span class="req" data-i18n="inc_probe_login">探测用账户</span>
+            <input name="probe_account" required maxlength="512" placeholder="邮箱或用户名" class="in-magic" autocomplete="off"/>
+          </label>
+          <label class="inc-field inc-probe-pw"><span class="req" data-i18n="inc_probe_pw">探测用密码</span>
+            <span class="inc-pw-wrap">
+              <input id="inc-probe-password" name="probe_password" type="password" required minlength="9" maxlength="512" placeholder="大小写+数字+特殊符号，> 8位" class="in-magic" autocomplete="new-password"/>
+              <button type="button" class="inc-pw-toggle" data-pw-toggle="inc-probe-password" aria-label="显示或隐藏密码">👁</button>
+            </span>
+          </label>
+        </div>
+
+        <div class="inc-submit-row inc-submit-row-rank">
+          <button class="btn btn-magic primary" type="submit" data-i18n="inc_submit">提交申请</button>
+          <a class="btn btn-ghost" href="/inclusion/status" data-i18n="inc_status_btn">查看申请状态</a>
+          <p id="imsg" class="msg" role="status"></p>
+        </div>
+      </form>
     </div>
   </section>
 </div>

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from relay_probe.model_catalog import TRACKED_MODELS
+from relay_probe.model_catalog import home_detector_models
 from relay_probe.probe import ProbeResult
 
 
@@ -15,7 +15,7 @@ def build_report_ui(
     tr: dict[str, Any],
     chat_usage: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    slugs = [m["slug"] for m in TRACKED_MODELS]
+    slugs = [m["slug"] for m in home_detector_models()]
     http_ok = res.http_status is not None and 200 <= int(res.http_status) < 300
     primary_ok = bool(matches.get(primary_slug))
     tracked_hits = sum(1 for s in slugs if matches.get(s))
@@ -86,8 +86,8 @@ def build_report_ui(
         {
             "id": "lines-tracked",
             "state": lines_state,
-            "text_zh": f"收录目标线在目录中匹配数 {tracked_hits}/{len(slugs)}",
-            "text_en": f"Tracked catalog lines matched: {tracked_hits}/{len(slugs)}",
+            "text_zh": f"本页检测目标线在目录中匹配数 {tracked_hits}/{len(slugs)}",
+            "text_en": f"Detector lines matched in catalog: {tracked_hits}/{len(slugs)}",
         },
         {
             "id": "latency",
