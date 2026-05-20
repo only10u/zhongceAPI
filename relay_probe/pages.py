@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 import json
-import html
 import secrets
 import string
 
@@ -29,13 +28,10 @@ from sqlalchemy.orm import Session
 from relay_probe import __version__
 from relay_probe.auth_security import (
     create_access_token,
-    create_password_reset_token,
     decode_token,
-    decode_password_reset_token,
     hash_password,
     verify_password,
 )
-from relay_probe.mail_utils import send_reset_email, smtp_configured
 from relay_probe.config import Settings
 from relay_probe.database import get_db
 from relay_probe.db_bootstrap import import_seed_sites_from_json
@@ -120,22 +116,6 @@ def _check_report_rl(ip: str, max_per_hour: int = 40) -> None:
 def _new_report_public_id() -> str:
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(12))
-
-
-def _public_root(request: Request) -> str:
-    root = (settings.public_origin or "").strip().rstrip("/")
-    return root or str(request.base_url).rstrip("/")
-
-
-def _user_email_value(username: str, email: str | None) -> str:
-    if email and email.strip():
-        return email.strip()
-    return username.strip()
-
-
-def _looks_like_email(value: str) -> bool:
-    s = (value or "").strip()
-    return "@" in s and "." in s.split("@")[-1]
 
 
 BASE = Path(__file__).resolve().parent
@@ -383,14 +363,6 @@ def api_admin_traffic(
 @router.get("/login", response_class=HTMLResponse)
 def page_login(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("login.html", _ctx(request))
-
-
-@router.get("/reset-password", response_class=HTMLResponse)
-def page_reset_password(request: Request, token: str = "") -> HTMLResponse:
-    return templates.TemplateResponse(
-        "reset_password.html",
-        _ctx(request, reset_token=(token or "").strip()),
-    )
 
 
 @router.get("/workspace", response_class=HTMLResponse)
@@ -764,18 +736,13 @@ def api_register(
         raise HTTPException(400, detail="用户名长度 2-32")
     if len(password) < 6:
         raise HTTPException(400, detail="密码至少 6 位")
-    username_clean = username.strip()
-    email_clean = username_clean if _looks_like_email(username_clean) else None
     exists = (
-        db.query(User)
-        .filter((User.username == username_clean) | (User.email == username_clean))
-        .first()
+        db.query(User).filter(User.username == username.strip()).first()
     )
     if exists:
         raise HTTPException(400, detail="用户名已存在")
     u = User(
-        username=username_clean,
-        email=email_clean,
+        username=username.strip(),
         password_hash=hash_password(password),
         is_admin=False,
     )
@@ -794,70 +761,6 @@ def api_register(
         secure=settings.cookie_secure,
     )
     return r
-
-
-@router.post("/api/auth/forgot-password")
-def api_forgot_password(
-    request: Request,
-    identifier: str = Form(...),
-    db: Session = Depends(get_db),
-) -> JSONResponse:
-    ident = (identifier or "").strip()
-    if len(ident) < 2:
-        raise HTTPException(400, detail="请输入用户名或邮箱")
-    u = (
-        db.query(User)
-        .filter((User.username == ident) | (User.email == ident))
-        .one_or_none()
-    )
-    if u is None:
-        raise HTTPException(404, detail="未找到该账号")
-    email = (u.email or u.username).strip()
-    token = create_password_reset_token(u.id, u.username, email)
-    reset_url = f"{_public_root(request)}/reset-password?token={token}"
-    subject = "DAPI 密码重置"
-    text_body = (
-        f"你好，{u.username}。\n\n"
-        f"请在 {settings.password_reset_expire_minutes} 分钟内打开以下链接重置密码：\n"
-        f"{reset_url}\n\n"
-        "如果这不是你的操作，请忽略此邮件。"
-    )
-    html_body = (
-        f"<p>你好，{html.escape(u.username)}。</p>"
-        f"<p>请在 {settings.password_reset_expire_minutes} 分钟内点击下面链接重置密码：</p>"
-        f'<p><a href="{html.escape(reset_url, quote=True)}">{html.escape(reset_url)}</a></p>'
-        "<p>如果这不是你的操作，请忽略此邮件。</p>"
-    )
-    try:
-        send_reset_email(email, subject, text_body, html_body)
-    except RuntimeError as e:
-        raise HTTPException(503, detail="邮件服务未配置") from e
-    except Exception as e:  # noqa: BLE001
-        log.exception("send reset email failed")
-        raise HTTPException(500, detail="邮件发送失败") from e
-    return JSONResponse({"ok": True})
-
-
-@router.post("/api/auth/reset-password")
-def api_reset_password(
-    token: str = Form(...),
-    new_password: str = Form(...),
-    db: Session = Depends(get_db),
-) -> JSONResponse:
-    if len(new_password) < 8:
-        raise HTTPException(400, detail="新密码至少 8 位")
-    payload = decode_password_reset_token((token or "").strip())
-    if not payload:
-        raise HTTPException(400, detail="重置链接无效或已过期")
-    uid = int(payload.get("uid") or 0)
-    u = db.query(User).filter(User.id == uid).one_or_none()
-    if u is None:
-        raise HTTPException(404, detail="未找到该账号")
-    u.password_hash = hash_password(new_password)
-    u.reset_token_hash = None
-    u.reset_token_expires_at = None
-    db.commit()
-    return JSONResponse({"ok": True})
 
 
 @router.get("/api/auth/me")

@@ -48,25 +48,11 @@ class Settings(BaseSettings):
     # JWT 鉴权（网页登录、用户工作台）；生产请设长随机串
     jwt_secret: str = Field(default="insecure-please-set-jwt-secret-in-env")
     jwt_expire_hours: int = Field(default=72, ge=1, le=720)
-    # Password reset JWT secret and expiry
-    password_reset_secret: str = Field(
-        default="insecure-please-set-password-reset-secret-in-env"
-    )
-    password_reset_expire_minutes: int = Field(default=30, ge=5, le=1440)
     # 首启时自动创建管理员（仅当尚无任何用户）
     init_admin_username: str = Field(default="")
     init_admin_password: str = Field(default="")
     # 是否开放自助注册
     allow_register: bool = Field(default=True)
-    # SMTP for password reset emails
-    smtp_host: str = Field(default="")
-    smtp_port: int = Field(default=587, ge=1, le=65535)
-    smtp_username: str = Field(default="")
-    smtp_password: str = Field(default="")
-    smtp_from: str = Field(default="")
-    smtp_use_tls: bool = Field(default=True)
-    smtp_use_ssl: bool = Field(default=False)
-    smtp_timeout_sec: float = Field(default=15.0, ge=1.0, le=120.0)
     # 静态资源 ?v=… 防缓存（读环境变量 STATIC_ASSET_VERSION；部署拉代码后未刷新 UI 时可设日期或短 commit）
     static_asset_version: str = Field(default="")
 
