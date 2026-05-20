@@ -1,8 +1,8 @@
 (function () {
   const I18N = {
     zh: {
-      brand: "中测",
-      subtitle: "中转站 API 检测平台",
+      brand: "DAPI",
+      subtitle: "Relay API Health Board",
       nav_home: "首页",
       nav_rank: "中转站排行",
       nav_yiyuan: "一元模型",
@@ -10,9 +10,9 @@
       nav_workspace: "工作台",
       nav_logout: "退出",
       nav_login: "登录",
-      foot_copy: "中测",
-      home_eyebrow: "中转站 API 检测平台",
-      home_brand_title: "中测",
+      foot_copy: "DAPI",
+      home_eyebrow: "dapicloud.com",
+      home_brand_title: "dapicloud.com",
       home_tagline: "识别中转站接口真伪 · 多模型分榜 · 持续探测",
       home_cta: "进入中转站排行",
       home_cta2: "申请收录",
@@ -94,7 +94,7 @@
       inc_hint_short_en: "Use the dedicated inclusion page for the full form and status lookup.",
       inc_go_full: "填写收录申请",
       inc_status_btn: "查看申请状态",
-      inc_notice_p1: "中测为公开技术探测索引：收录与基础探测不收费，意在提供可复现的网关健康度参考，中立第三方视角。",
+      inc_notice_p1: "DAPI 为公开技术探测索引：收录与基础探测不收费，意在提供可复现的网关健康度参考，中立第三方视角。",
       inc_notice_p2: "全站数据由程序按固定路径定时请求、自动汇总；收录后如需对话级用量抽检，将使用单独配置的探测 Key（非人工登录你的账户）。",
       inc_notice_p3: "请提供可探测的测试账户信息（由管理员在后台录入），账户内需保留不少于 ¥100 可用额度，供目录与抽样请求消耗；测试额度仅用于技术探测，不作任何非探测用途。",
       inc_notice_p4: "测试站密码要求（与常见安全基线一致）：长度 > 8；含英文大写与小写、数字与特殊字符，避免与正式主账号同口令。",
@@ -109,7 +109,7 @@
       inc_sec_other: "其他",
       inc_suggest_group: "建议分组",
       inc_sec_models: "支持的模型（申报）",
-      inc_models_hint: "勾选贵站实际可提供的线路，便于审核侧对照目录；与中测探测目标线对齐。",
+      inc_models_hint: "勾选贵站实际可提供的线路，便于审核侧对照目录；与 DAPI 探测目标线对齐。",
       inc_status_h1: "申请状态",
       inc_back_form: "返回申请表",
       inc_status_lead: "提交成功后页面会显示申请编号；也可在此输入编号查询当前进度。",
@@ -141,6 +141,12 @@
       register_title: "注册",
       login_h2: "登录",
       login_hint: "",
+      auth_forgot_link: "找回密码",
+      auth_forgot_title: "找回密码",
+      auth_forgot_desc: "输入用户名或邮箱，系统会发送重置链接到已绑定邮箱。",
+      auth_forgot_submit: "发送重置邮件",
+      auth_forgot_id: "用户名或邮箱",
+      auth_forgot_ok: "重置邮件已发送，请检查邮箱。",
       f_user: "用户名",
       f_pass: "密码",
       f_submit: "登录",
@@ -159,7 +165,7 @@
       m_knote: "目录与对话实连；无 Key 时仅目录。",
       m_knote_en: "With API key, chat usage is probed. Without key, models only.",
       rep_rank_link: "查看全站排行",
-      rep_by: "中测 / OpenAI-compatible 目录探测",
+      rep_by: "DAPI / OpenAI-compatible 目录探测",
       probe_banner_sub: "试探测不保存你的 Key 与业务对话。为保障账户安全，建议优先使用测试专用 Key。我们重视你的隐私，可在合规场景下放心使用。",
       probe_banner_sub_en: "Probes do not store your key or chat content. Prefer a test-only key. We care about your privacy and security.",
       cost_h2: "成本计算",
@@ -181,15 +187,15 @@
       ad_traffic_h2: "日访问量（PV，UTC）",
       ad_traffic_p: "主站各可见页面「GET 成功」计一次（不含 /api、/static 等）。部署多实例时各库独立累加。",
       auth_reg_title: "创建账户",
-      auth_reg_sub: "注册以开始使用中测",
+      auth_reg_sub: "注册以开始使用 DAPI",
       auth_login_lead: "使用已有账号登录",
       auth_pw_hint: "至少 6 个字符",
       auth_foot: "未注册可切换到「注册」创建普通账号",
-      auth_copyright: "© 中测",
+      auth_copyright: "© DAPI",
       auth_aria_close: "关闭",
     },
     en: {
-      brand: "Zhongce",
+      brand: "DAPI",
       subtitle: "Relay API Health Board",
       nav_home: "Home",
       nav_rank: "Rankings",
@@ -198,9 +204,9 @@
       nav_workspace: "Workspace",
       nav_logout: "Logout",
       nav_login: "Login",
-      foot_copy: "Zhongce",
-      home_eyebrow: "Relay API verification platform",
-      home_brand_title: "Zhongce",
+      foot_copy: "DAPI",
+      home_eyebrow: "dapicloud.com",
+      home_brand_title: "dapicloud.com",
       home_tagline: "Spot fake relays · per-model tables · always-on probes",
       home_cta: "Open rankings",
       home_cta2: "Request listing",
@@ -279,7 +285,7 @@
       inc_hint_short_en: "Full form and status are on the inclusion page.",
       inc_go_full: "Open inclusion form",
       inc_status_btn: "Application status",
-      inc_notice_p1: "Zhongce is a public technical index: basic listing and probes are free, for reproducible gateway health signals from a neutral third-party view.",
+      inc_notice_p1: "DAPI is a public technical index: basic listing and probes are free, for reproducible gateway health signals from a neutral third-party view.",
       inc_notice_p2: "Site-wide stats are collected automatically on a schedule; if chat-level usage sampling is needed after listing, a dedicated probe key is configured—not a human logging into your account.",
       inc_notice_p3: "Provide a test account for operators to enter in the admin panel, with at least ¥100 usable balance for directory and sampling traffic. Credits are strictly for technical probing.",
       inc_notice_p4: "Test-account password baseline: length > 8; include uppercase & lowercase Latin letters, digits, and a symbol; avoid reusing your production password.",
@@ -326,6 +332,12 @@
       viz_lat: "Last 12 one-off latencies (browser only)",
       login_h2: "Sign in",
       login_hint: "",
+      auth_forgot_link: "Forgot password",
+      auth_forgot_title: "Reset password",
+      auth_forgot_desc: "Enter your username or email and we will send a reset link.",
+      auth_forgot_submit: "Send reset email",
+      auth_forgot_id: "Username or email",
+      auth_forgot_ok: "Reset email sent. Please check your inbox.",
       f_user: "Username",
       f_pass: "Password",
       f_submit: "Sign in",
@@ -344,7 +356,7 @@
       m_knote: "Models + optional chat usage with API key. Deep checks not on this page.",
       m_knote_en: "With API key, one chat completion and usage. Without key, models only.",
       rep_rank_link: "Open full rankings",
-      rep_by: "Zhongce · OpenAI-compatible models list probe",
+      rep_by: "DAPI · OpenAI-compatible models list probe",
       probe_banner_sub: "Probes do not store your key or chat content. Prefer a test-only key. We care about your privacy and security.",
       probe_banner_sub_en: "Probes do not store your key or chat content. Prefer a test-only key.",
       cost_h2: "Cost estimate",
@@ -366,11 +378,11 @@
       ad_traffic_h2: "Daily page views (UTC)",
       ad_traffic_p: "One count per successful HTML GET (excludes /api, /static). Each app instance has its own counter.",
       auth_reg_title: "Create account",
-      auth_reg_sub: "Register to use Zhongce",
+      auth_reg_sub: "Register to use DAPI",
       auth_login_lead: "Sign in with an existing account",
       auth_pw_hint: "At least 6 characters",
       auth_foot: "Use the Register tab to create a normal account.",
-      auth_copyright: "© Zhongce",
+      auth_copyright: "© DAPI",
       auth_aria_close: "Close",
     },
   };
@@ -462,6 +474,7 @@
     const tUp = document.getElementById("auth-tab-up");
     const msg = document.getElementById("auth-modal-msg");
     const nav = document.getElementById("nav-auth-open");
+    const forgotOpen = document.getElementById("auth-forgot-open");
     const backdrop = modal.querySelector("[data-auth-close]");
     const xBtn = document.getElementById("auth-modal-x");
     const fLogin = document.getElementById("f-auth-login");
@@ -499,6 +512,13 @@
       document.body.style.overflow = "";
     }
 
+    function forgotText(key, fallback) {
+      const lang = (document.getElementById("html-root")?.getAttribute("lang") || "").startsWith("en")
+        ? "en"
+        : "zh";
+      return (I18N[lang] && I18N[lang][key]) || fallback;
+    }
+
     if (tIn) tIn.addEventListener("click", () => setMode(false));
     if (tUp) tUp.addEventListener("click", () => setMode(true));
     if (backdrop) backdrop.addEventListener("click", closeAuth);
@@ -510,6 +530,26 @@
       nav.addEventListener("click", (e) => {
         e.preventDefault();
         openAuth("login");
+      });
+    }
+    if (forgotOpen) {
+      forgotOpen.addEventListener("click", async () => {
+        if (!msg) return;
+        const identifier = window.prompt(forgotText("auth_forgot_id", "用户名或邮箱"));
+        if (!identifier) return;
+        msg.textContent = "";
+        const fd = new FormData();
+        fd.append("identifier", identifier);
+        const r = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          body: fd,
+          credentials: "same-origin",
+        });
+        if (r.ok) {
+          msg.textContent = forgotText("auth_forgot_ok", "重置邮件已发送");
+          return;
+        }
+        msg.textContent = (await r.json().catch(() => ({}))).detail || String(r.status);
       });
     }
     if (fLogin) {
@@ -543,6 +583,31 @@
       if (q.get("mode") === "register") openAuth("register");
       else openAuth("login");
     }
+  })();
+
+  (function initResetPage() {
+    const form = document.getElementById("f-reset-password");
+    if (!form) return;
+    const msg = document.getElementById("reset-msg");
+    const tokenEl = document.getElementById("reset-token");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!msg) return;
+      const fd = new FormData();
+      fd.append("token", (tokenEl?.value || "").trim());
+      fd.append("new_password", String(new FormData(form).get("new_password") || ""));
+      const r = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin",
+      });
+      if (r.ok) {
+        msg.textContent = "密码已重置，请返回登录。";
+        form.reset();
+        return;
+      }
+      msg.textContent = (await r.json().catch(() => ({}))).detail || String(r.status);
+    });
   })();
 
   function newVisitorId() {

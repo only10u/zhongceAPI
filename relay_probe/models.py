@@ -134,8 +134,13 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    email: Mapped[Optional[str]] = mapped_column(String(320), unique=True, index=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(256))
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    reset_token_hash: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    reset_token_expires_at: Mapped[Optional[dt.datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, nullable=False
     )

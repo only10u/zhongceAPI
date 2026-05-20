@@ -109,11 +109,32 @@ def _ensure_inclusion_and_rank_json_columns() -> None:
             )
 
 
+def _ensure_user_columns() -> None:
+    if not str(settings.database_url).startswith("sqlite"):
+        return
+    alters = [
+        ("email", "ALTER TABLE users ADD COLUMN email VARCHAR(320)"),
+        ("reset_token_hash", "ALTER TABLE users ADD COLUMN reset_token_hash VARCHAR(256)"),
+        (
+            "reset_token_expires_at",
+            "ALTER TABLE users ADD COLUMN reset_token_expires_at DATETIME",
+        ),
+    ]
+    with engine.begin() as conn:
+        r = conn.execute(text("PRAGMA table_info(users)"))
+        names = {row[1] for row in r.all()}
+        for col, ddl in alters:
+            if col not in names:
+                conn.execute(text(ddl))
+                names.add(col)
+
+
 def init_db() -> None:
     settings.data_path.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     _ensure_relay_columns()
     _ensure_inclusion_and_rank_json_columns()
+    _ensure_user_columns()
     from relay_probe.db_bootstrap import ensure_admin_user, import_seed_sites_from_json
 
     ensure_admin_user()

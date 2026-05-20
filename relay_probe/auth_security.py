@@ -40,3 +40,33 @@ def decode_token(token: str) -> dict[str, Any] | None:
         return jwt.decode(token, settings.jwt_secret, algorithms=[ALG])
     except JWTError:
         return None
+
+
+def create_password_reset_token(
+    user_id: int,
+    username: str,
+    email: str,
+    expires_minutes: int | None = None,
+) -> str:
+    m = expires_minutes if expires_minutes is not None else settings.password_reset_expire_minutes
+    exp = dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=m)
+    payload: dict[str, Any] = {
+        "uid": user_id,
+        "sub": username,
+        "email": email,
+        "exp": exp,
+        "typ": "pwd_reset",
+    }
+    return jwt.encode(payload, settings.password_reset_secret, algorithm=ALG)
+
+
+def decode_password_reset_token(token: str) -> dict[str, Any] | None:
+    try:
+        payload = jwt.decode(
+            token, settings.password_reset_secret, algorithms=[ALG]
+        )
+    except JWTError:
+        return None
+    if payload.get("typ") != "pwd_reset":
+        return None
+    return payload

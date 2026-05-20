@@ -20,7 +20,7 @@
 <body>
   <header class="top top-glass">
     <div class="top-left">
-      <a class="logo logo-magic" href="/" data-i18n="brand">中测</a>
+      <a class="logo logo-magic" href="/" data-i18n="brand">DAPI</a>
     </div>
     <nav class="nav">
       <a href="/" data-i18n="nav_home">首页</a>
@@ -49,7 +49,6 @@
     </div>
   </header>
   <div class="kuma-appstrip" id="kuma-appstrip" hidden aria-label="服务状态">
-    <span class="kuma-strip-dot" id="kuma-app-health"></span>
     <span id="kuma-app-line">—</span>
   </div>
   <main class="main">{% block main %}{% endblock %}</main>
@@ -60,10 +59,9 @@
       <div class="auth-modal-card" id="auth-modal-card">
         <button type="button" class="auth-modal-x" id="auth-modal-x" data-i18n-aria="auth_aria_close" aria-label="关闭">×</button>
         <div class="auth-modal-brand" aria-hidden="true">
-          <span class="auth-modal-logo" data-i18n="auth_brand_l">中</span>
           <div>
-            <div class="auth-modal-name" data-i18n="brand">中测</div>
-            <div class="auth-modal-sub" data-i18n="subtitle">中转站 API 检测平台</div>
+            <div class="auth-modal-name" data-i18n="brand">DAPI</div>
+            <div class="auth-modal-sub" data-i18n="subtitle">Relay API Health Board</div>
           </div>
         </div>
         <div class="auth-tabs" role="tablist" aria-label="auth">
@@ -76,17 +74,16 @@
           <form id="f-auth-login" class="auth-form" autocomplete="on">
             <label class="auth-label"><span class="auth-l" data-i18n="f_user">用户名</span>
               <span class="auth-in-wrap">
-                <span class="auth-in-ico" aria-hidden="true">◎</span>
-                <input name="username" required autocomplete="username" class="auth-in"/>
-              </span>
-            </label>
-            <label class="auth-label"><span class="auth-l" data-i18n="f_pass">密码</span>
-              <span class="auth-in-wrap">
-                <span class="auth-in-ico" aria-hidden="true">◆</span>
+              <input name="username" required autocomplete="username" class="auth-in"/>
+            </span>
+          </label>
+          <label class="auth-label"><span class="auth-l" data-i18n="f_pass">密码</span>
+            <span class="auth-in-wrap">
                 <input name="password" type="password" required autocomplete="current-password" class="auth-in" data-auth-pw="login"/>
-              </span>
-            </label>
+            </span>
+          </label>
             <button class="auth-submit auth-submit-primary" type="submit" data-i18n="f_submit">登录</button>
+            <button type="button" class="auth-link-btn" id="auth-forgot-open" data-i18n="auth_forgot_link">找回密码</button>
           </form>
         </div>
         <div class="auth-surface" id="auth-surface-reg" hidden>
@@ -95,13 +92,11 @@
           <form id="f-auth-reg" class="auth-form" autocomplete="on">
             <label class="auth-label"><span class="auth-l" data-i18n="f_user">用户名</span>
               <span class="auth-in-wrap">
-                <span class="auth-in-ico" aria-hidden="true">◎</span>
                 <input name="username" required autocomplete="username" class="auth-in"/>
               </span>
             </label>
             <label class="auth-label"><span class="auth-l" data-i18n="f_pass">密码</span>
               <span class="auth-in-wrap">
-                <span class="auth-in-ico" aria-hidden="true">◆</span>
                 <input name="password" type="password" required autocomplete="new-password" class="auth-in" data-auth-pw="reg" minlength="6"/>
               </span>
             </label>
